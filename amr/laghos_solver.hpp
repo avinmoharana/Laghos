@@ -165,7 +165,10 @@ public:
    Vector& GetZoneMaxVisc() { return zone_max_visc; }
    Vector& GetZoneVGrad() { return zone_vgrad; }
 
-   void PrintTimingData(bool IamRoot, int steps);
+  //MeshAdapt Update of the operator
+  void UpdateEssentialTrueDofs(); 
+  void MeshAdaptUpdate(const Vector& S, const ParGridFunction &disp_gf);
+  void PrintTimingData(bool IamRoot, int steps);
 
    ~LagrangianHydroOperator();
 };

@@ -730,6 +730,99 @@ void LagrangianHydroOperator::AMRUpdate(const Vector &S, bool quick)
    pmesh->SwapNodes(x_gf, own_nodes);
 }
 
+
+void LagrangianHydroOperator::UpdateEssentialTrueDofs()
+{
+    ParMesh *pmesh = H1FESpace.GetParMesh();
+    Array<int> updated_ess_tdofs;
+    Array<int> ess_bdr(pmesh->bdr_attributes.Max()), tdofs1d;
+    for (int d = 0; d < pmesh->Dimension(); d++)
+    {
+        // Attributes 1/2/3 correspond to fixed-x/y/z boundaries, i.e., we must
+        // enforce v_x/y/z = 0 for the velocity components.
+        ess_bdr = 0; ess_bdr[d] = 1;
+        H1FESpace.GetEssentialTrueDofs(ess_bdr, tdofs1d, d);
+        updated_ess_tdofs.Append(tdofs1d);
+    }
+    ess_tdofs = updated_ess_tdofs;    
+}
+
+void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
+        const ParGridFunction &disp_gf)
+{
+   ParMesh *pmesh = H1FESpace.GetParMesh();
+
+   width = height = S.Size();
+   nzones = pmesh->GetNE();
+
+   x0_gf.Update();
+   x0_gf = *(pmesh->GetNodes());
+   x0_gf -= disp_gf;
+   rho0.Update();
+
+   // go back to initial mesh configuration temporarily
+   int own_nodes = 0;
+   GridFunction *x_gf = &x0_gf;
+   pmesh->SwapNodes(x_gf, own_nodes);
+
+   //Complete density update 
+   FunctionCoefficient rho_coeff(hydrodynamics::rho0);
+   ParGridFunction l2_rho(&L2FESpace);
+   l2_rho.ProjectCoefficient(rho_coeff);
+   rho0.ProjectGridFunction(l2_rho);
+
+   // update mass matrix: TODO: don't reassemble everything
+   Mv.Update();
+   Mv.Assemble();
+
+   // update Me_inv - TODO: do this better too
+   {
+      Me_inv.SetSize(l2dofs_cnt, l2dofs_cnt, nzones);
+
+      DenseMatrix Me(l2dofs_cnt);
+      DenseMatrixInverse inv(&Me);
+      MassIntegrator mi(rho0_coeff, &integ_rule);
+      for (int i = 0; i < nzones; i++)
+      {
+         mi.AssembleElementMatrix(*L2FESpace.GetFE(i),
+                                  *L2FESpace.GetElementTransformation(i), Me);
+         inv.Factor();
+         inv.GetInverseMatrix(Me_inv(i));
+      }
+   }
+
+   // resize quadrature data and make sure 'stressJinvT' will be recomputed
+   quad_data.Resize(dim, nzones, integ_rule.GetNPoints());
+   quad_data_is_current = false;
+
+   // Update 'rho0DetJ0' and 'Jac0inv' at all quadrature points.
+   // TODO: remove code duplication
+   const int nqp = integ_rule.GetNPoints();
+   Vector rho_vals(nqp);
+   for (int i = 0; i < nzones; i++)
+   {
+      rho0.GetValues(i, integ_rule, rho_vals);
+      ElementTransformation *T = H1FESpace.GetElementTransformation(i);
+      for (int q = 0; q < nqp; q++)
+      {
+         const IntegrationPoint &ip = integ_rule.IntPoint(q);
+         T->SetIntPoint(&ip);
+
+         DenseMatrixInverse Jinv(T->Jacobian());
+         Jinv.GetInverseMatrix(quad_data.Jac0inv(i*nqp + q));
+
+         const double rho0DetJ0 = T->Weight() * rho_vals(q);
+         quad_data.rho0DetJ0w(i*nqp + q) = rho0DetJ0 *
+                                           integ_rule.IntPoint(q).weight;
+      }
+   }
+
+   // swap back to deformed mesh configuration
+   pmesh->SwapNodes(x_gf, own_nodes);
+
+   //qp_spy_fes.Update(false);
+}
+
 } // namespace hydrodynamics
 
 } // namespace mfem
