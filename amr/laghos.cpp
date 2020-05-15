@@ -557,7 +557,8 @@ int main(int argc, char *argv[])
 
   int meshwritten = 0; // Testing
 
-  ParGridFunction x0_gf(x_gf);
+  ParGridFunction x0_gf(&H1FESpace);
+  x0_gf = x_gf;
 
   for (int ti = 1; !last_step; ti++)
   {
@@ -604,6 +605,8 @@ int main(int argc, char *argv[])
 
     // Make sure that the mesh corresponds to the new solution state.
     pmesh->NewNodes(x_gf, false);
+    //VectorGridFunctionCoefficient x0_coeff(x0_gf);
+    //x0_gf.ProjectCoefficient(x0_coeff);
     x0_gf.Update();
 
     if (last_step || (ti % vis_steps) == 0)
@@ -872,11 +875,25 @@ int main(int argc, char *argv[])
       updated_offset[3] = updated_offset[2] + Vsize_l2;
       S.Update(updated_offset);
       std::cout<<"Reached HERE-------------03"<<std::endl;
+      x_gf.Update();
+      v_gf.Update();
+      e_gf.Update();
 
       pmesh->SetNodalGridFunction(&x_gf);
       cout<<"Reached HERE----------------03.25"<<endl;
       pPPmesh->FieldPUMItoMFEM(pumi_mesh, vel_field, &v_gf);
       cout<<"Reached HERE----------------03.5"<<endl;
+
+      it = pumi_mesh->begin(3);
+      int cnt =0;
+      while ((ent = pumi_mesh->iterate(it))) {
+      	cout<<" no : -----" << cnt<<endl;
+      	double val = apf::getScalar(e_field, ent, 0);
+	cout<<" e -field vals  "<<val<<"on "<<cnt<<endl;
+	cnt++;
+      }
+      pumi_mesh->end(it);
+
       pPPmesh->FieldPUMItoMFEM(pumi_mesh, e_field, &e_gf);
       cout<<"Reached HERE----------------03.75"<<endl;
       //pPPmesh->FieldPUMItoMFEM(pumi_mesh, rho_field, &rho_gf);
