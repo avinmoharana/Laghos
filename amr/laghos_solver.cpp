@@ -756,8 +756,9 @@ void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
    nzones = pmesh->GetNE();
 
    x0_gf.Update();
-   x0_gf = *(pmesh->GetNodes());
-   x0_gf -= disp_gf;
+   //x0_gf = *(pmesh->GetNodes());
+   //x0_gf -= disp_gf;
+   x0_gf = disp_gf;
    rho0.Update();
 
    // go back to initial mesh configuration temporarily
