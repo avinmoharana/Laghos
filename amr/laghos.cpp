@@ -50,7 +50,7 @@
 #include <iostream>
 #include <fstream>
 
-#ifdef MFEM_USE_SIMMETRIX
+#ifdef HAVE_SIMMETRIX
 #include <SimUtil.h>
 #include <MeshSim.h>
 #include <SimModel.h>
@@ -290,11 +290,16 @@ int main(int argc, char *argv[])
   // 3. Read the SCOREC mesh
   PCU_Comm_Init();
   lion_set_verbosity(1);
-  //MS_init();
-  //Sim_readLicenseFile(0);
+
+#ifdef HAVE_SIMMETRIX
+  MS_init();
+  SimModel_start();
+  Sim_readLicenseFile(0);
+  gmi_sim_start();
+  gmi_register_sim();
+#endif
+  
   gmi_register_null();
-  //gmi_sim_start();
-  //gmi_register_sim();
   gmi_register_mesh();
 
   apf::Mesh2* pumi_mesh;
@@ -1115,7 +1120,12 @@ int main(int argc, char *argv[])
   pumi_mesh->destroyNative();
   apf::destroyMesh(pumi_mesh);
 
-  // gmi_sim_stop();
+#ifdef HAVE_SIMMETRIX
+  gmi_sim_stop();
+  Sim_unregisterAllKeys();
+  SimModel_stop();
+  MS_exit();
+#endif
 
   return 0;
 }
