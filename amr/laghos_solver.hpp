@@ -88,7 +88,8 @@ protected:
 
    ParGridFunction &rho0;
    GridFunctionCoefficient rho0_coeff; // TODO: remove when Mv update improved
-   ParGridFunction x0_gf; // copy of initial mesh position
+   //ParGridFunction x0_gf; // copy of initial mesh position
+   //ParGridFunction *x0_gf; // copy of initial mesh position
 
    // Velocity mass matrix and local inverses of the energy mass matrices. These
    // are constant in time, due to the pointwise mass conservation property.
@@ -157,7 +158,7 @@ public:
    void ComputeDensity(ParGridFunction &rho);
 
    // Update all internal data on mesh change.
-   void AMRUpdate(const Vector &S, bool quick);
+   //void AMRUpdate(const Vector &S, bool quick);
 
    void SetH0(double h0) { quad_data.h0 = h0; }
    double GetH0() const { return quad_data.h0; }
@@ -167,7 +168,7 @@ public:
 
   //MeshAdapt Update of the operator
   void UpdateEssentialTrueDofs(); 
-  void MeshAdaptUpdate(const Vector& S, const ParGridFunction &disp_gf);
+  void MeshAdaptUpdate(const Vector& S, ParGridFunction &disp_gf, ParGridFunction &current_gf);
   void PrintTimingData(bool IamRoot, int steps);
 
    ~LagrangianHydroOperator();

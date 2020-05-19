@@ -112,7 +112,7 @@ LagrangianHydroOperator::LagrangianHydroOperator(int size,
      material_pcf(material_),
      rho0(rho0),
      rho0_coeff(&rho0),
-     x0_gf(&h1_fes),
+     //x0_gf(&h1_fes),
      Mv(&h1_fes), Me_inv(l2dofs_cnt, l2dofs_cnt, nzones),
      integ_rule(IntRules.Get(h1_fes.GetMesh()->GetElementBaseGeometry(0),
                              3*h1_fes.GetOrder(0) + l2_fes.GetOrder(0) - 1)),
@@ -161,7 +161,8 @@ LagrangianHydroOperator::LagrangianHydroOperator(int size,
    }
 
    // Save initial (undeformed) mesh configuration for use in AMRUpdate later.
-   x0_gf = *(h1_fes.GetMesh()->GetNodes());
+   //x0_gf = *(h1_fes.GetMesh()->GetNodes());
+   //x0_gf = &(h1_fes.GetMesh()->GetNodes());
 
    // Initial local mesh size (assumes all mesh elements are of the same type).
    double loc_area = 0.0, glob_area;
@@ -660,7 +661,7 @@ void LagrangianHydroOperator::UpdateQuadratureData(const Vector &S) const
    timer.sw_qdata.Stop();
    timer.quad_tstep += nzones;
 }
-
+/*
 void LagrangianHydroOperator::AMRUpdate(const Vector &S, bool quick)
 {
    ParMesh *pmesh = H1FESpace.GetParMesh();
@@ -668,14 +669,16 @@ void LagrangianHydroOperator::AMRUpdate(const Vector &S, bool quick)
    width = height = S.Size();
    nzones = pmesh->GetNE();
 
-   x0_gf.Update();
+   //x0_gf.Update();
+   x0_gf->Update();
    rho0.Update();
 
    if (quick) { return; }
 
    // go back to initial mesh configuration temporarily
    int own_nodes = 0;
-   GridFunction *x_gf = &x0_gf;
+   //GridFunction *x_gf = &x0_gf;
+   GridFunction *x_gf = x0_gf;
    pmesh->SwapNodes(x_gf, own_nodes);
 
    // update mass matrix
@@ -729,6 +732,7 @@ void LagrangianHydroOperator::AMRUpdate(const Vector &S, bool quick)
    // swap back to deformed mesh configuration
    pmesh->SwapNodes(x_gf, own_nodes);
 }
+*/
 
 
 void LagrangianHydroOperator::UpdateEssentialTrueDofs()
@@ -748,22 +752,59 @@ void LagrangianHydroOperator::UpdateEssentialTrueDofs()
 }
 
 void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
-        const ParGridFunction &disp_gf)
+        ParGridFunction &disp_gf, ParGridFunction &current_gf)
 {
    ParMesh *pmesh = H1FESpace.GetParMesh();
 
    width = height = S.Size();
    nzones = pmesh->GetNE();
+   //x0_gf->Update();
+   //x0_gf.Update();
 
-   x0_gf.Update();
+   cout<<" H1 space from solver "<<H1FESpace.GetVSize()<<"  "<<H1FESpace.GetNDofs()<<endl;
+   //cout<<" Size of x0 gf "<<x0_gf.Size()<<endl;
+   //cout<<" Size of x0 gf "<<x0_gf->Size()<<endl;
+   cout<<" Size of disp gf "<<disp_gf.Size()<<endl;
+
+
+   //ParGridFunction x1_gf(&H1FESpace);
+   //x1_gf = disp_gf;
+   //x0_gf.MakeOwner(disp_gf.FESpace()->FEColl());
    //x0_gf = *(pmesh->GetNodes());
    //x0_gf -= disp_gf;
-   x0_gf = disp_gf;
+   //ParGridFunction *x1_gf = new ParGridFunction(&H1FESpace, &disp_gf);
+
+   //Vector V;
+   //x0_gf.MakeRef(&H1FESpace, V, 0);
+   //V = disp_gf.GetTrueVector();
+   //x0_gf.ProjectGridFunction(disp_gf);
+
+   //x0_gf = *(disp_gf.GetTrueDofs());
+   //x0_gf = 0.;
+   //x0_gf += disp_gf;
+   //*x0_gf = &disp_gf;
+
+   //Vector x0_data(disp_gf.GetData(), disp_gf.Size());
+   //x0_gf.SetFromTrueDofs(x0_data);
+
+   //x0_gf.NewDataAndSize(disp_gf.GetData(), disp_gf.Size());
+
+   cout<<" copied to original node values "<<endl;
+   cout<<" Updated x0_gf size "<<endl;
+   ofstream mesh_vtk_ofs("meshFromUpdate.vtk");
+   pmesh->PrintVTK(mesh_vtk_ofs, 1);
+   //x0_gf.SaveVTK(mesh_vtk_ofs, "starting_nodes", 1);
+   //x1_gf->SaveVTK(mesh_vtk_ofs, "starting_nodes", 1);
+   //x1_gf.SaveVTK(mesh_vtk_ofs, "copy_nodes", 1);
+   current_gf.SaveVTK(mesh_vtk_ofs, "copy_nodes", 1);
+   disp_gf.SaveVTK(mesh_vtk_ofs, "d_starting_nodes", 1);
    rho0.Update();
+   cout<<" updated rho "<<endl;
 
    // go back to initial mesh configuration temporarily
    int own_nodes = 0;
-   GridFunction *x_gf = &x0_gf;
+   //GridFunction *x_gf = &x1_gf;
+   GridFunction *x_gf = &disp_gf;
    pmesh->SwapNodes(x_gf, own_nodes);
 
    //Complete density update 
@@ -818,8 +859,11 @@ void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
       }
    }
 
+   rho0.SaveVTK(mesh_vtk_ofs, "starting_nodes", 1);
    // swap back to deformed mesh configuration
+   GridFunction *x2_gf = &current_gf;
    pmesh->SwapNodes(x_gf, own_nodes);
+   //delete x1_gf;
 
    //qp_spy_fes.Update(false);
 }

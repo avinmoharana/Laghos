@@ -136,13 +136,6 @@ void setParBdryAttributes(ParMesh* mesh, apf::Mesh2* pumi_mesh);
 void FindElementsWithVertex(const Mesh* mesh, const Vertex &vert,
     const double size, Array<int> &elements);
 
-void computeHessian(ParMesh* mesh, int order, int dim);
-
-void computeHessianElem(ParMesh *mesh, int elemNum, 
-    const ParGridFunction &v_gf, const ParGridFunction &x_gf, 
-    IntegrationPoint ip, int order, 
-    DenseMatrix &ElHess);
-
 void transferFieldToPUMI(ParGridFunction pgf,
     apf::Mesh2* pumi_mesh,
     apf::Field* pumiField);
@@ -571,8 +564,8 @@ int main(int argc, char *argv[])
 
     //Update displacement d = d + X_(n+1) - X_n
     //First step : d = d - X_n
-    dgf_old = d_gf;
-    d_gf -= x_gf;
+    //dgf_old = d_gf;
+    //d_gf -= x_gf;
 
     S_old = S;
     t_old = t;
@@ -580,7 +573,7 @@ int main(int argc, char *argv[])
 
     // S is the vector of dofs, t is the current time, and dt is the time step
     // to advance.
-    cout<<" computing new soultion "<<endl;
+    cout<<" computing new soultion with dt "<<dt<<endl;
     ode_solver->Step(S, t, dt);
     cout<<" computed new solution "<<endl;
     //steps++;
@@ -596,7 +589,7 @@ int main(int argc, char *argv[])
       { MFEM_ABORT("The time step crashed!"); }
       t = t_old;
       S = S_old;
-      d_gf = dgf_old;
+      //d_gf = dgf_old;
       oper.ResetQuadratureData();
       if (mpi.Root()) { cout << "Repeating step " << ti << endl; }
       ti--; continue;
@@ -693,8 +686,6 @@ int main(int argc, char *argv[])
 	e_ofs.close();
       }
     }
-    //computeHessian(pmesh, order_v, 3);
-    //
 
     ParFiniteElementSpace *fespace_scalar = new ParFiniteElementSpace(pmesh, &H1FEC, 1, Ordering::byVDIM);
     ParGridFunction v_mag(fespace_scalar);
@@ -730,14 +721,29 @@ int main(int argc, char *argv[])
     //crv::writeCurvedWireFrame(pumi_mesh, 8, "mesh_start");
     changePumiMesh3(x_gf, pmesh, pumi_mesh, geom_order);
     pumi_mesh->verify();
-    ofstream mesh_vtk_ofs("mfem_mesh.vtk");
-    pmesh->PrintVTK(mesh_vtk_ofs, 1);
-    v_mag.SaveVTK(mesh_vtk_ofs, "v_mag_field", 1);
+    ofstream mesh_vtk_ofs1("mfem_mesh_refine.vtk");
+    pmesh->PrintVTK(mesh_vtk_ofs1, 2);
+    v_mag.SaveVTK(mesh_vtk_ofs1, "v_mag_field", 2);
+    x0_gf.SaveVTK(mesh_vtk_ofs1, "x0_field", 2);
+    x_gf.SaveVTK(mesh_vtk_ofs1, "x_field", 2);
+    e_gf.SaveVTK(mesh_vtk_ofs1, "e_field", 2);
+    ofstream mesh_vtk_ofs2("mfem_mesh.vtk");
+    pmesh->PrintVTK(mesh_vtk_ofs2, 1);
+    v_mag.SaveVTK(mesh_vtk_ofs2, "v_mag_field", 1);
+    x0_gf.SaveVTK(mesh_vtk_ofs2, "x0_field", 1);
+    x_gf.SaveVTK(mesh_vtk_ofs2, "x_field", 1);
+    e_gf.SaveVTK(mesh_vtk_ofs2, "e_field", 1);
 
+    cout<<" number of fields at start "<<pumi_mesh->countFields()<<endl;
     if (steps % 2 == 0 && steps != 0) {
 
       //crv::writeCurvedVtuFiles(pumi_mesh, apf::Mesh::TRIANGLE, 8, "mesh_beforeAdapt");
       //crv::writeCurvedWireFrame(pumi_mesh, 8, "mesh_beforeAdapt");
+
+      apf::Field *Coords = apf::createField(
+	  pumi_mesh, "CoordField", apf::VECTOR, crv::getBezier(order_v));
+      apf::Field *Coords_mag_field = apf::createField(
+	  pumi_mesh, "Coords_mag", apf::SCALAR, crv::getBezier(order_v));
 
       apf::Field *vel_field = apf::createField(
 	  pumi_mesh, "vel", apf::VECTOR, crv::getBezier(order_v));
@@ -749,15 +755,17 @@ int main(int argc, char *argv[])
       apf::Field *e_mag_field = apf::createField(
 	  pumi_mesh, "energy-mag", apf::SCALAR, apf::getConstant(3));
 
-      apf::Field *rho_field = apf::createField(
-	  pumi_mesh, "DensityField", apf::SCALAR, apf::getConstant(3));
-      apf::Field *rho_mag_field = apf::createField(
-	  pumi_mesh, "DensityField-mag", apf::SCALAR, apf::getConstant(3));
-
+    
       apf::Field *initialCoords = apf::createField(
 	  pumi_mesh, "InitialCoordinate", apf::VECTOR, crv::getBezier(order_v));
       apf::Field *initial_mag_field = apf::createField(
 	  pumi_mesh, "Initial_mag", apf::SCALAR, crv::getBezier(order_v));
+/*
+      apf::Field *rho_field = apf::createField(
+	  pumi_mesh, "DensityField", apf::SCALAR, apf::getConstant(3));
+      apf::Field *rho_mag_field = apf::createField(
+	  pumi_mesh, "DensityField-mag", apf::SCALAR, apf::getConstant(3));
+*/
 
       cout<<"Fields on pumi defined"<<endl;
       ParPumiMesh* pPPmesh = dynamic_cast<ParPumiMesh*>(pmesh);
@@ -765,9 +773,12 @@ int main(int argc, char *argv[])
       pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &x0_gf, initialCoords, initial_mag_field);
 
       std::cout<<"parmesh casted to parpumimesh"<<std::endl;
+      pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &x_gf, Coords, Coords_mag_field);
       pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &v_gf, vel_field, vel_mag_field);
-      //pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &disp_gf, disp_field, disp_mag_field);
       pPPmesh->FieldMFEMtoPUMI(pumi_mesh, &e_gf, e_field, e_mag_field);
+      crv::convertInterpolatingFieldToBezier(pumi_mesh, Coords);
+      crv::convertInterpolatingFieldToBezier(pumi_mesh, vel_field);
+      crv::convertInterpolatingFieldToBezier(pumi_mesh, initialCoords);
       //pPPmesh->FieldMFEMtoPUMI(pumi_mesh, &rho_gf, rho_field, rho_mag_field);
 
       std::cout<<"field transfer to pumi"<<std::endl;
@@ -797,6 +808,40 @@ int main(int argc, char *argv[])
 	nvt++;
       }
       pumi_mesh->end(it);
+
+      it = pumi_mesh->begin(0);
+      int cntv =0;
+      while ((ent = pumi_mesh->iterate(it))) {
+	cntv++;
+      }
+      pumi_mesh->end(it);
+      cout<<"number of vertices before adapt "<<cntv<<" from MFEM "<<pmesh->GetNV()<<endl;
+/*
+      it = pumi_mesh->begin(3);
+      int cnte =0;
+      apf::Vector3 crd;
+      apf::Vector3 xitest = apf::Vector3(1./4., 1./4., 1./4.);
+      IntegrationPoint ip;
+      ip.Set3(1./4., 1./4., 1./4.);
+      Vector crd_mfem;
+      Vector crdMfem;
+
+      while ((ent = pumi_mesh->iterate(it))) {
+	apf::MeshElement* me = apf::createMeshElement(pumi_mesh, ent);
+	apf::mapLocalToGlobal(me, xitest, crd);
+	apf::destroyMeshElement(me);
+	ElementTransformation *et = pmesh->GetElementTransformation(cnte);
+	et->Transform(ip, crdMfem);
+	x_gf.GetVectorValue(cnte, ip, crd_mfem);
+	cout<<" before adapt "<< crd<<" mfem "
+	  << crd_mfem(0)<<" "<< crd_mfem(1) <<" "<< crd_mfem(2)<<
+	  " from trans ("<< crdMfem(0)<<" "<<crdMfem(1)<<" "<<crdMfem(2)<<")"<<endl;
+	cnte++;
+      }
+      pumi_mesh->end(it);
+      cout<<"number of tets before adapt "<<cnte<<" from MFEM "<<pmesh->GetNE()<<endl;
+*/
+      cout<<" number of fields "<<pumi_mesh->countFields()<<endl;
 
       std::cout<<"sizes and frames"<<std::endl;
       int sampleSize[2] = {20, 20};
@@ -839,20 +884,35 @@ int main(int argc, char *argv[])
       sampleSize[1] = 10;
       //visualizeSizeField(pumi_mesh, "sizes", "frames", sampleSize, 0.2, "size_field_after");
       //AFTER ADAPT - write vtk file
+      /*
       apf::writeVtkFiles("After_ma", pumi_mesh);
       cout << "ADAPTED " << endl;
-      //crv::writeCurvedVtuFiles(pumi_mesh, apf::Mesh::TRIANGLE, 8, "mesh_afterAdapt");
-      //crv::writeCurvedWireFrame(pumi_mesh, 8, "mesh_afterAdapt");
-
+      crv::writeCurvedVtuFiles(pumi_mesh, apf::Mesh::TRIANGLE, 8, "mesh_afterAdapt");
+      crv::writeCurvedWireFrame(pumi_mesh, 8, "mesh_afterAdapt");
+*/
       //tryEdgeReshape(pumi_mesh);
+
 
       std::cout<<"Reached HERE----------"<<std::endl;
       ParMesh* Adapmesh = new ParPumiMesh(MPI_COMM_WORLD, pumi_mesh);
       std::cout<<"Reached HERE-------------00"<<std::endl;
       pPPmesh->UpdateMesh(Adapmesh);
       std::cout<<"Reached HERE-------------01"<<std::endl;
-      delete Adapmesh;
+      //delete Adapmesh;
 
+      it = pumi_mesh->begin(0);
+      int cntvA =0;
+      while ((ent = pumi_mesh->iterate(it))) {
+	cntvA++;
+      }
+      pumi_mesh->end(it);
+      cout<<"number of vertices after adapt "<<cntvA<<" from MFEM "<<pmesh->GetNV()<<endl;
+
+
+      apf::writeVtkFiles("After_ma", pumi_mesh);
+      cout << "ADAPTED " << endl;
+      //crv::writeCurvedVtuFiles(pumi_mesh, apf::Mesh::TRIANGLE, 8, "mesh_afterAdapt");
+      //crv::writeCurvedWireFrame(pumi_mesh, 8, "mesh_afterAdapt");
       setParBdryAttributes(pmesh, pumi_mesh);
       cout<<"Reached HERE-------------01.5"<<endl;
 
@@ -864,10 +924,14 @@ int main(int argc, char *argv[])
       //Update Essential true dofs
       oper.UpdateEssentialTrueDofs();
 
-      pPPmesh->FieldPUMItoMFEM(pumi_mesh, initialCoords, &x0_gf);
+      cout<<"Reached HERE-------------01.80"<<endl;
+
+
+      //x_gf = 0.0;
+
       Vsize_l2 = L2FESpace.GetVSize();
       Vsize_h1 = H1FESpace.GetVSize();
-      std::cout<<"Reached HERE-------------02"<<std::endl;
+      std::cout<<"Reached HERE-------------02"<<" H1 space size "<<Vsize_h1<<std::endl;
       Array<int> updated_offset(4);
       updated_offset[0] = 0;
       updated_offset[1] = updated_offset[0] + Vsize_h1;
@@ -879,11 +943,23 @@ int main(int argc, char *argv[])
       v_gf.Update();
       e_gf.Update();
 
-      pmesh->SetNodalGridFunction(&x_gf);
+      x0_gf.Update();
+      //rho_gf.Update();
+
+      //pmesh->UpdateNodes();
+      pPPmesh->FieldPUMItoMFEM(pumi_mesh, initialCoords, &x0_gf);
+      cout<<"Reached HERE----------------03.10"<<endl;
+
+      //pmesh->SetNodalGridFunction(&x_gf);
+      pPPmesh->FieldPUMItoMFEM(pumi_mesh, Coords, &x_gf);
       cout<<"Reached HERE----------------03.25"<<endl;
       pPPmesh->FieldPUMItoMFEM(pumi_mesh, vel_field, &v_gf);
       cout<<"Reached HERE----------------03.5"<<endl;
 
+      pPPmesh->FieldPUMItoMFEM(pumi_mesh, e_field, &e_gf);
+      cout<<"Reached HERE----------------03.75"<<endl;
+
+      /*
       it = pumi_mesh->begin(3);
       int cnt =0;
       while ((ent = pumi_mesh->iterate(it))) {
@@ -893,23 +969,91 @@ int main(int argc, char *argv[])
 	cnt++;
       }
       pumi_mesh->end(it);
-
-      pPPmesh->FieldPUMItoMFEM(pumi_mesh, e_field, &e_gf);
-      cout<<"Reached HERE----------------03.75"<<endl;
-      //pPPmesh->FieldPUMItoMFEM(pumi_mesh, rho_field, &rho_gf);
-
-      std::cout<<"Reached HERE-------------04"<<std::endl;
+*/
+      /*
+      it = pumi_mesh->begin(3);
+      int cnteA =0;
+      while ((ent = pumi_mesh->iterate(it))) {
+	apf::MeshElement* me1 = apf::createMeshElement(pumi_mesh, ent);
+	apf::mapLocalToGlobal(me1, xitest, crd);
+	apf::destroyMeshElement(me1);
+	x_gf.GetVectorValue(cnteA, ip, crd_mfem);
+	ElementTransformation *et1 = pmesh->GetElementTransformation(cnteA);
+	et1->Transform(ip, crdMfem);
+	cout<<" after adapt "<< crd<<" mfem "
+	  << crd_mfem(0)<<" "<< crd_mfem(1) <<" "<< crd_mfem(2)<<
+	  " from trans ("<< crdMfem(0)<<" "<<crdMfem(1)<<" "<<crdMfem(2)<<")"<<endl;
+	cnteA++;
+      }
+      pumi_mesh->end(it);
+      cout<<"number of edges after adapt "<<cnteA<<" from MFEM "<<pmesh->GetNE()<<endl;
+*/
+      cout<<" number of fields after adapt "<<pumi_mesh->countFields()<<endl;
+/*
       x_gf.MakeRef(&H1FESpace, S, updated_offset[0]);
       v_gf.MakeRef(&H1FESpace, S, updated_offset[1]);
       e_gf.MakeRef(&L2FESpace, S, updated_offset[2]);
-      //rho_gf.Update();
+*/
+
+      std::cout<<"Reached HERE-------------04"<<std::endl;
+      //pPPmesh->FieldPUMItoMFEM(pumi_mesh, rho_field, &rho_gf);
+
       std::cout<<"Reached HERE-------------05"<<std::endl;
-      oper.MeshAdaptUpdate(S, x0_gf);
+      
+      ofstream mesh_vtk_ofs("mesh_after_adapt.vtk");
+      pmesh->PrintVTK(mesh_vtk_ofs, 1);
+      x0_gf.SaveVTK(mesh_vtk_ofs, "initial_nodes", 1);
+      x_gf.SaveVTK(mesh_vtk_ofs, "current_nodes", 1);
+      v_gf.SaveVTK(mesh_vtk_ofs, "velocity", 1);
+      e_gf.SaveVTK(mesh_vtk_ofs, "energy", 1);
+      
+      
+      Vector x_data(x_gf.GetData(), x_gf.Size());
+      Vector &block0 = S.GetBlock(0);
+      block0 = x_data;
+
+      Vector v_data(v_gf.GetData(), v_gf.Size());
+      Vector &block1 = S.GetBlock(1);
+      block1 = v_data;
+      
+      Vector e_data(e_gf.GetData(), e_gf.Size());
+      Vector &block2 = S.GetBlock(2);
+      block2 = e_data;
+      
+      /*Vector &block1 = S.GetBlock(1);
+      for (int i = 0; i < v_data.Size(); i++)
+      	block1(i) = v_data(i);
+
+      Vector &e_data = e_gf.GetTrueVector();
+      Vector &block2 = S.GetBlock(2);
+      for (int i = 0; i < e_data.Size(); i++)
+      	block2(i) = e_data(i);
+
+      S.GetBlock(0).SetVector(x_gf.GetTrueVector(), 0);
+      S.GetBlock(1).SetVector(v_gf.GetTrueVector(), 0);
+      S.GetBlock(2).SetVector(e_gf.GetTrueVector(), 0);
+*/
+      /*
+      for(int i = 0; i < block0.Size(); i++)
+	printf("block0[%d] and x_data = %f   %f\n", i, block0(i), x_data(i));
+      for(int i = 0; i < block1.Size(); i++)
+	printf("block1[%d] and v_data = %f   %f\n", i, block1(i), v_data(i));
+      for(int i = 0; i < block2.Size(); i++)
+	printf("block2[%d] and e_data = %f   %f\n", i, block2(i), e_data(i));
+*/
+      ParGridFunction *x3_gf = new ParGridFunction(x0_gf);
+      ofstream mesh_vtk_ofs3("mesh_try.vtk");
+      pmesh->PrintVTK(mesh_vtk_ofs3, 1);
+      x3_gf->SaveVTK(mesh_vtk_ofs3, "x3_nodes", 1);
+      x0_gf.SaveVTK(mesh_vtk_ofs3, "x0_nodes", 1);
+
+      oper.MeshAdaptUpdate(S, x0_gf, x_gf);
       //d_gf.Update();
       S_old.Update(updated_offset);
       //oper.MeshAdaptUpdate(S, x_gf);
       std::cout<<"Reached HERE-------------06"<<std::endl;
 
+      GetZeroBCDofs(pmesh, &H1FESpace, bdr_attr_max, ess_tdofs);
       ode_solver->Init(oper);
       //x_gf = 0.0;
       //v_gf = 0.0;
@@ -925,17 +1069,23 @@ int main(int argc, char *argv[])
       //oper.MeshAdaptUpdate(S, d_gf);
       //
       //Destroy fields
+      delete Adapmesh;
       apf::destroyField(sizes);
       apf::destroyField(frames);
-      apf::destroyField(initialCoords);
-      apf::destroyField(initial_mag_field);
+      apf::destroyField(Coords);
+      apf::destroyField(Coords_mag_field);
       apf::destroyField(vel_field);
       apf::destroyField(vel_mag_field);
       apf::destroyField(e_field);
-      apf::destroyField(e_field);
-      apf::destroyField(rho_field);
-      apf::destroyField(rho_mag_field);
+      apf::destroyField(e_mag_field);
+      
+      apf::destroyField(initialCoords);
+      apf::destroyField(initial_mag_field);
+
+      //apf::destroyField(rho_field);
+      //apf::destroyField(rho_mag_field);
     }
+
     steps++;
 
   } // end ADAPT LOOP  
