@@ -36,14 +36,14 @@
 //             *** THIS IS AN AUTOMATIC MESH REFINEMENT DEMO ***
 //
 // Sample runs:
+//    TODO update this for pumi mesh adapt
 //    mpirun -np 8 laghos -p 1 -m ../data/square01_quad.mesh -rs 4 -tf 0.8 -amr
 //    mpirun -np 8 laghos -p 1 -m ../data/square01_quad.mesh -rs 4 -tf 0.8 -ok 3 -ot 2 -amr
 //    mpirun -np 8 laghos -p 1 -m ../data/cube01_hex.mesh -rs 3 -tf 0.6 -amr
 //    mpirun -np 8 laghos -p 1 -m ../data/cube01_hex.mesh -rs 4 -tf 0.6 -rt 1e-3 -amr
 //
 // Test problems:
-//    p = 1  --> Sedov blast.
-//#include <pumi.h>
+//
 #include "laghos_solver.hpp"
 #include "mfem.hpp"
 #include <memory>
@@ -56,18 +56,16 @@
 #include <SimModel.h>
 #include <gmi_sim.h>
 #endif
-#include <apfMDS.h>
-#include <gmi_null.h>
 #include <PCU.h>
-#include <spr.h>
+#include <apfMDS.h>
 #include <apfConvert.h>
 #include <apfShape.h>
 #include <apfField.h>
+#include <gmi_null.h>
 #include <gmi_mesh.h>
+#include <spr.h>
 #include <crv.h>
 #include <lionPrint.h>
-/* #include <crvEdgeOptim.h> */
-/* #include <crvModelEdgeOptim.h> */
 
 // === includes for safe_mkdir ===
 #include <reel.h>
@@ -140,6 +138,8 @@ void transferFieldToPUMI(ParGridFunction pgf,
     apf::Mesh2* pumi_mesh,
     apf::Field* pumiField);
 
+// TODO remove the one that is not being used
+// TODO remove the number at the end of the function name
 void changePumiMesh3(ParGridFunction x_gf,
     ParMesh *pmesh,
     apf::Mesh2 *pumi_mesh,
@@ -191,7 +191,6 @@ int main(int argc, char *argv[])
   bool visit = false;
   bool gfprint = false;
   const char *basename = "results/Laghos";
-  int partition_type = 111;
   bool amr = false;
   double ref_threshold = 2e-4;
   double deref_threshold = 0.75;
@@ -253,16 +252,6 @@ int main(int argc, char *argv[])
       "Enable or disable result output (files in mfem format).");
   args.AddOption(&basename, "-k", "--outputfilename",
       "Name of the visit dump files");
-
-  args.AddOption(&partition_type, "-pt", "--partition",
-      "Customized x/y/z Cartesian MPI partitioning of the serial mesh.\n\t"
-      "Here x,y,z are relative task ratios in each direction.\n\t"
-      "Example: with 48 mpi tasks and -pt 321, one would get a Cartesian\n\t"
-      "partition of the serial mesh by (6,4,2) MPI tasks in (x,y,z).\n\t"
-      "NOTE: the serially refined mesh must have the appropriate number\n\t"
-      "of zones in each direction, e.g., the number of zones in direction x\n\t"
-      "must be divisible by the number of MPI tasks in direction x.\n\t"
-      "Available options: 11, 21, 111, 211, 221, 311, 321, 322, 432.");
   args.AddOption(&adapt_ratio, "-ar", "--adapt_ratio",
       "adaptation factor used in MeshAdapt");
 
@@ -873,7 +862,7 @@ int main(int argc, char *argv[])
       ma::Input* erinput = ma::configure(pumi_mesh, sizes, frames, 0, true);
       erinput->shouldSnap = false;
       erinput->shouldTransferParametric = false;
-      erinput->goodQuality = 0.3;
+      erinput->goodQuality = 0.027;
       erinput->shouldFixShape = true;
       erinput->maximumIterations = 1;
       erinput->shouldCoarsen = false; 

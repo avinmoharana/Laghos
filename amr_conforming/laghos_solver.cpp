@@ -772,7 +772,8 @@ void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
    //x0_gf.MakeOwner(disp_gf.FESpace()->FEColl());
    //x0_gf = *(pmesh->GetNodes());
    //x0_gf -= disp_gf;
-   //ParGridFunction *x1_gf = new ParGridFunction(&H1FESpace, &disp_gf);
+   ParGridFunction *x1_gf = new ParGridFunction(disp_gf);
+   ParGridFunction *x0_gf = new ParGridFunction(disp_gf);
 
    //Vector V;
    //x0_gf.MakeRef(&H1FESpace, V, 0);
@@ -793,11 +794,11 @@ void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,
    cout<<" Updated x0_gf size "<<endl;
    ofstream mesh_vtk_ofs("meshFromUpdate.vtk");
    pmesh->PrintVTK(mesh_vtk_ofs, 1);
-   //x0_gf.SaveVTK(mesh_vtk_ofs, "starting_nodes", 1);
-   //x1_gf->SaveVTK(mesh_vtk_ofs, "starting_nodes", 1);
+   /* x0_gf->SaveVTK(mesh_vtk_ofs, "x0_gf", 1); */
+   /* x1_gf->SaveVTK(mesh_vtk_ofs, "x1_gf", 1); */
    //x1_gf.SaveVTK(mesh_vtk_ofs, "copy_nodes", 1);
-   current_gf.SaveVTK(mesh_vtk_ofs, "copy_nodes", 1);
-   disp_gf.SaveVTK(mesh_vtk_ofs, "d_starting_nodes", 1);
+   /* current_gf.SaveVTK(mesh_vtk_ofs, "copy_nodes", 1); */
+   /* disp_gf.SaveVTK(mesh_vtk_ofs, "disp_gf", 1); */
    rho0.Update();
    cout<<" updated rho "<<endl;
 
