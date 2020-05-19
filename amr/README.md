@@ -7,33 +7,18 @@
 
         High-order Lagrangian Hydrodynamics Miniapp
 
-                       AMR version
+                      (conforming) AMR version
 
 
 ## Overview
-
-This directory contains the automatic mesh refinement (AMR) version of **Laghos**
+This directory contains the automatic conforming curved mesh adapt (AMR) version of **Laghos**, and makes use of PUMI libraries. 
 (LAGrangian High-Order Solver), which is currently considered experimental and
 is NOT the official benchmark version of the miniapp.
 
 For more details about Laghos see the [README file](../README.md) in the
 top-level directory.
 
-The Laghos miniapp is part of the [CEED software suite](http://ceed.exascaleproject.org/software),
-a collection of software benchmarks, miniapps, libraries and APIs for
-efficient exascale discretizations based on high-order finite element
-and spectral element methods. See http://github.com/ceed for more
-information and source code availability.
-
-The CEED research is supported by the [Exascale Computing Project](https://exascaleproject.org/exascale-computing-project)
-(17-SC-20-SC), a collaborative effort of two U.S. Department of Energy
-organizations (Office of Science and the National Nuclear Security
-Administration) responsible for the planning and preparation of a
-[capable exascale ecosystem](https://exascaleproject.org/what-is-exascale),
-including software, applications, hardware, advanced system engineering and early
-testbed platforms, in support of the nation’s exascale computing imperative.
-
-
+For more details on PUMI mesh adapt tools see [parallel finite element unstructured meshes](https://github.com/SCOREC/core)
 ## Differences from the official benchmark version
 
 The AMR version differs from the official benchmark version of Laghos (in the
@@ -60,9 +45,13 @@ top-level directory) in the following ways:
 
 ## Building
 
-The AMR version can be built following the same [instructions](../README.md) as
-for the top-level directory.
-
+The conforming AMR version can be built using the CMake by first modifying the config_conforming_amr.sh file to point cmake to install locations of MFEM, PUMI, and other libraries and then following instructions.
+```
+cd amr
+mkdir build
+source ../config_conforming_amr.sh
+make laghos
+````
 
 ## Running
 
