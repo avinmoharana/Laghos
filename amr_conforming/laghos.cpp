@@ -167,18 +167,9 @@ int main(int argc, char *argv[])
   myid = mpi.WorldRank();
 
   // 2. Parse command-line options.
-  /*
-     const char *mfem_mesh_file = "../meshes/cube_tet_4_uns.mesh";
-     const char *pumi_mesh_file = "/users/mohara/Desktop/cubeN/cube03.smb";
-  //const char *pumi_mesh_file = "/users/mohara/Desktop/cubeN/cubeTet.smb";
-  const char *model_file = "/users/mohara/Desktop/cubeN/cubeTet_nat.x_t";
-  const char *smd_file = "/users/mohara/Desktop/cubeN/cubeTet.smd";
-   */
-  const char *mfem_mesh_file = "../meshes/cube_tet_4_uns.mesh";
-  const char *pumi_mesh_file = "/home/avinash/Documents/github/meshes/cubeN/cube03.smb";
-  //const char *pumi_mesh_file = "/home/avinash/Documents/github/meshes/cubeN/cubeTet.smb";
-  const char *model_file = "/home/avinash/Documents/github/meshes/cubeN/cubeTet_nat.x_t";
-  const char *smd_file = "/home/avinash/Documents/github/meshes/cubeN/cubeTet.smd";
+  const char *pumi_mesh_file = "../data/cube.smb";
+  const char *native_model_file = "../data/cube_nat.x_t";
+  const char *simx_model_file = "../data/cube.smd";
 
 
   int geom_order = 2;
@@ -211,8 +202,12 @@ int main(int argc, char *argv[])
   double adapt_ratio = 0.06;
 
   OptionsParser args(argc, argv);
-  args.AddOption(&mfem_mesh_file, "-m", "--mesh",
+  args.AddOption(&pumi_mesh_file, "-pm", "--pumi-mesh",
       "Mesh file to use.");
+  args.AddOption(&native_model_file, "-nm", "--native-model",
+      "Native model file.");
+  args.AddOption(&simx_model_file, "-sm", "--simx-model",
+      "Simmetrix model file.");
   args.AddOption(&rs_levels, "-rs", "--refine-serial",
       "Number of times to refine the mesh uniformly in serial.");
   args.AddOption(&rp_levels, "-rp", "--refine-parallel",
@@ -303,7 +298,16 @@ int main(int argc, char *argv[])
   gmi_register_mesh();
 
   apf::Mesh2* pumi_mesh;
-  //pumi_mesh = apf::loadMdsMesh(model_file, pumi_mesh_file);
+
+#ifdef HAVE_SIMMETRIX
+  MFEM_ASSERT(simx_model_file || native_model_file, "native or simx model file required");
+  const char* model_file;
+  if (simx_model_file)
+    model_file = simx_model_file;
+  else
+    model_file = native_model_file;
+  pumi_mesh = apf::loadMdsMesh(model_file, pumi_mesh_file);
+#endif
   pumi_mesh = apf::loadMdsMesh(".null", pumi_mesh_file);
 
   // 4. Increase the geometry order and refine the mesh if necessary.  Parallel
@@ -964,17 +968,16 @@ int main(int argc, char *argv[])
       pPPmesh->FieldPUMItoMFEM(pumi_mesh, e_field, &e_gf);
       cout<<"Reached HERE----------------03.75"<<endl;
 
-      /*
-      it = pumi_mesh->begin(3);
-      int cnt =0;
-      while ((ent = pumi_mesh->iterate(it))) {
-      	cout<<" no : -----" << cnt<<endl;
-      	double val = apf::getScalar(e_field, ent, 0);
-	cout<<" e -field vals  "<<val<<"on "<<cnt<<endl;
-	cnt++;
-      }
-      pumi_mesh->end(it);
-*/
+/*       it = pumi_mesh->begin(3); */
+/*       int cnt =0; */
+/*       while ((ent = pumi_mesh->iterate(it))) { */
+/*       	cout<<" no : -----" << cnt<<endl; */
+/*       	double val = apf::getScalar(e_field, ent, 0); */
+/* 	cout<<" e -field vals  "<<val<<"on "<<cnt<<endl; */
+/* 	cnt++; */
+/*       } */
+/*       pumi_mesh->end(it); */
+
       /*
       it = pumi_mesh->begin(3);
       int cnteA =0;
