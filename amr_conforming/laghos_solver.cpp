@@ -475,7 +475,7 @@ void LagrangianHydroOperator::UpdateQuadratureData(const Vector &S) const
    // involve expensive computations of material properties. Although this
    // miniapp uses simple EOS equations, we still want to represent the batched
    // cycle structure.
-   int nzones_batch = 3;
+   int nzones_batch = 1; //3 used as default
    const int nbatches =  nzones / nzones_batch + 1; // +1 for the remainder.
    int nqp_batch = nqp * nzones_batch;
    double *gamma_b = new double[nqp_batch],

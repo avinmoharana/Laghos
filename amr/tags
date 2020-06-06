@@ -1,0 +1,292 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AMRUpdate	laghos.cpp	/^void AMRUpdate(BlockVector &S, BlockVector &S_tmp,$/;"	f
+AMRUpdate	laghos_CFD_project.cpp	/^void AMRUpdate(BlockVector &S, BlockVector &S_tmp,$/;"	f
+AMRUpdate	laghos_SeparateRoutinePumiMesh.cpp	/^void AMRUpdate(BlockVector &S, BlockVector &S_tmp,$/;"	f
+AMRUpdate	laghos_solver.cpp	/^void LagrangianHydroOperator::AMRUpdate(const Vector &S, bool quick)$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+AMRUpdate	laghos_w_Hessian.cpp	/^void AMRUpdate(BlockVector &S, BlockVector &S_tmp,$/;"	f
+AMRUpdate	laghos_withPrint.cpp	/^void AMRUpdate(BlockVector &S, BlockVector &S_tmp,$/;"	f
+ASTYLE	makefile	/^ASTYLE = astyle --options=$(MFEM_DIR1)\/config\/mfem.astylerc$/;"	m
+AssembleElementMatrix2	laghos_assembly.cpp	/^void ForceIntegrator::AssembleElementMatrix2(const FiniteElement &trial_fe,$/;"	f	class:mfem::hydrodynamics::ForceIntegrator
+AssembleRHSElementVect	laghos_assembly.cpp	/^void DensityIntegrator::AssembleRHSElementVect(const FiniteElement &fe,$/;"	f	class:mfem::hydrodynamics::DensityIntegrator
+CC	makefile	/^CC     = gcc$/;"	m
+CCC	makefile	/^CCC  = $(strip $(CXX) $(LAGHOS_FLAGS))$/;"	m
+CFLAGS	makefile	/^CFLAGS = -O3$/;"	m
+CONFIG_MK	makefile	/^CONFIG_MK = $(MFEM_DIR)\/config\/config.mk$/;"	m
+CPPFLAGS	makefile	/^CPPFLAGS = $(MFEM_CPPFLAGS)$/;"	m
+CXX	makefile	/^CXX = $(MFEM_CXX)$/;"	m
+CXXFLAGS	makefile	/^      CXXFLAGS = $(DEBUG_OPTS)$/;"	m
+CXXFLAGS	makefile	/^      CXXFLAGS = $(OPTIM_OPTS)$/;"	m
+CXXFLAGS	makefile	/^CXXFLAGS = $(MFEM_CXXFLAGS)$/;"	m
+Ccc	makefile	/^Ccc  = $(strip $(CC) $(CFLAGS) $(GL_OPTS))$/;"	m
+ComputeDensity	laghos_solver.cpp	/^void LagrangianHydroOperator::ComputeDensity(ParGridFunction &rho)$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+ComputeMaterialProperties	laghos_solver.hpp	/^   void ComputeMaterialProperties(int nvalues, const double gamma[],$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+DEBUG_OPTS	makefile	/^DEBUG_OPTS = -g -Wall$/;"	m
+DensityIntegrator	laghos_assembly.hpp	/^   DensityIntegrator(QuadratureData &quad_data_) : quad_data(quad_data_) { }$/;"	f	class:mfem::hydrodynamics::DensityIntegrator
+DensityIntegrator	laghos_assembly.hpp	/^class DensityIntegrator : public LinearFormIntegrator$/;"	c	namespace:mfem::hydrodynamics
+Eval	laghos_solver.hpp	/^   virtual double Eval(ElementTransformation &T,$/;"	f	class:mfem::hydrodynamics::TaylorCoefficient
+FEM_DIR	makefile	/^$(OBJECT_FILES): override MFEM_DIR = $(MFEM_DIR2)$/;"	m
+FEM_DIR	makefile	/^laghos: override MFEM_DIR = $(MFEM_DIR1)$/;"	m
+FESpace	laghos_assembly.hpp	/^   ParFiniteElementSpace &FESpace;$/;"	m	class:mfem::hydrodynamics::MassPAOperator
+FORMAT_FILES	makefile	/^FORMAT_FILES := $(SOURCE_FILES) $(HEADER_FILES)$/;"	m
+FastEvaluator	laghos_assembly.hpp	/^   FastEvaluator(ParFiniteElementSpace &h1fes)$/;"	f	class:mfem::hydrodynamics::FastEvaluator
+FastEvaluator	laghos_assembly.hpp	/^class FastEvaluator$/;"	c	namespace:mfem::hydrodynamics
+FindElementWithVertex	laghos.cpp	/^int FindElementWithVertex(const Mesh* mesh, const Vertex &vert)$/;"	f
+FindElementWithVertex	laghos_CFD_project.cpp	/^int FindElementWithVertex(const Mesh* mesh, const Vertex &vert)$/;"	f
+FindElementWithVertex	laghos_SeparateRoutinePumiMesh.cpp	/^int FindElementWithVertex(const Mesh* mesh, const Vertex &vert)$/;"	f
+FindElementWithVertex	laghos_w_Hessian.cpp	/^int FindElementWithVertex(const Mesh* mesh, const Vertex &vert)$/;"	f
+FindElementWithVertex	laghos_withPrint.cpp	/^int FindElementWithVertex(const Mesh* mesh, const Vertex &vert)$/;"	f
+FindElementsWithVertex	laghos.cpp	/^void FindElementsWithVertex(const Mesh* mesh, const Vertex &vert,$/;"	f
+FindElementsWithVertex	laghos_CFD_project.cpp	/^void FindElementsWithVertex(const Mesh* mesh, const Vertex &vert,$/;"	f
+FindElementsWithVertex	laghos_w_Hessian.cpp	/^void FindElementsWithVertex(const Mesh* mesh, const Vertex &vert,$/;"	f
+FindElementsWithVertex	laghos_withPrint.cpp	/^void FindElementsWithVertex(const Mesh* mesh, const Vertex &vert,$/;"	f
+Force	laghos_solver.hpp	/^   mutable MixedBilinearForm Force;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+ForceIntegrator	laghos_assembly.hpp	/^   ForceIntegrator(QuadratureData &quad_data_) : quad_data(quad_data_) { }$/;"	f	class:mfem::hydrodynamics::ForceIntegrator
+ForceIntegrator	laghos_assembly.hpp	/^class ForceIntegrator : public BilinearFormIntegrator$/;"	c	namespace:mfem::hydrodynamics
+ForcePA	laghos_solver.hpp	/^   ForcePAOperator ForcePA;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+ForcePAOperator	laghos_assembly.hpp	/^   ForcePAOperator(QuadratureData *quad_data_,$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+ForcePAOperator	laghos_assembly.hpp	/^class ForcePAOperator : public Operator$/;"	c	namespace:mfem::hydrodynamics
+GetH0	laghos_solver.hpp	/^   double GetH0() const { return quad_data.h0; }$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+GetL2Values	laghos_assembly.cpp	/^void FastEvaluator::GetL2Values(const Vector &vecL2, Vector &vecQ) const$/;"	f	class:mfem::hydrodynamics::FastEvaluator
+GetPerElementMinMax	laghos.cpp	/^void GetPerElementMinMax(const GridFunction &gf,$/;"	f
+GetPerElementMinMax	laghos_CFD_project.cpp	/^void GetPerElementMinMax(const GridFunction &gf,$/;"	f
+GetPerElementMinMax	laghos_SeparateRoutinePumiMesh.cpp	/^void GetPerElementMinMax(const GridFunction &gf,$/;"	f
+GetPerElementMinMax	laghos_w_Hessian.cpp	/^void GetPerElementMinMax(const GridFunction &gf,$/;"	f
+GetPerElementMinMax	laghos_withPrint.cpp	/^void GetPerElementMinMax(const GridFunction &gf,$/;"	f
+GetProlongation	laghos_assembly.hpp	/^   virtual const Operator *GetProlongation() const$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+GetRestriction	laghos_assembly.hpp	/^   virtual const Operator *GetRestriction() const$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+GetTimeStepEstimate	laghos_solver.cpp	/^double LagrangianHydroOperator::GetTimeStepEstimate(const Vector &S) const$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+GetVectorGrad	laghos_assembly.cpp	/^void FastEvaluator::GetVectorGrad(const DenseMatrix &vec, DenseTensor &J) const$/;"	f	class:mfem::hydrodynamics::FastEvaluator
+GetZeroBCDofs	laghos.cpp	/^void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,$/;"	f
+GetZeroBCDofs	laghos_CFD_project.cpp	/^void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,$/;"	f
+GetZeroBCDofs	laghos_SeparateRoutinePumiMesh.cpp	/^void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,$/;"	f
+GetZeroBCDofs	laghos_w_Hessian.cpp	/^void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,$/;"	f
+GetZeroBCDofs	laghos_withPrint.cpp	/^void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,$/;"	f
+GetZoneMaxVisc	laghos_solver.hpp	/^   Vector& GetZoneMaxVisc() { return zone_max_visc; }$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+GetZoneVGrad	laghos_solver.hpp	/^   Vector& GetZoneVGrad() { return zone_vgrad; }$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+H1FESpace	laghos_assembly.hpp	/^   ParFiniteElementSpace &H1FESpace, &L2FESpace;$/;"	m	class:mfem::hydrodynamics::ForcePAOperator
+H1FESpace	laghos_assembly.hpp	/^   ParFiniteElementSpace &H1FESpace;$/;"	m	class:mfem::hydrodynamics::FastEvaluator
+H1FESpace	laghos_solver.hpp	/^   ParFiniteElementSpace &H1FESpace;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+H1cg_iter	laghos_solver.hpp	/^   int H1cg_iter, L2dof_iter, quad_tstep;$/;"	m	struct:mfem::hydrodynamics::TimingData
+HEADER_FILES	makefile	/^HEADER_FILES = laghos_solver.hpp laghos_assembly.hpp$/;"	m
+HQgrad1D	laghos_assembly.hpp	/^   DenseMatrix HQshape1D, HQgrad1D, LQshape1D;$/;"	m	struct:mfem::hydrodynamics::Tensors1D
+HQshape1D	laghos_assembly.hpp	/^   DenseMatrix HQshape1D, HQgrad1D, LQshape1D;$/;"	m	struct:mfem::hydrodynamics::Tensors1D
+HYPRE_VERSION_STRING	config/get_hypre_version.cpp	16;"	d	file:
+HYPRE_VERSION_STRING	config/get_hypre_version.cpp	18;"	d	file:
+INSTALL	makefile	/^INSTALL = \/usr\/bin\/install$/;"	m
+Jac0inv	laghos_assembly.hpp	/^   DenseTensor Jac0inv;$/;"	m	struct:mfem::hydrodynamics::QuadratureData
+L2FESpace	laghos_assembly.hpp	/^   ParFiniteElementSpace &H1FESpace, &L2FESpace;$/;"	m	class:mfem::hydrodynamics::ForcePAOperator
+L2FESpace	laghos_solver.hpp	/^   ParFiniteElementSpace &L2FESpace;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+L2dof_iter	laghos_solver.hpp	/^   int H1cg_iter, L2dof_iter, quad_tstep;$/;"	m	struct:mfem::hydrodynamics::TimingData
+LAGHOS_DEBUG	makefile	/^LAGHOS_DEBUG = $(MFEM_DEBUG)$/;"	m
+LAGHOS_FLAGS	makefile	/^LAGHOS_FLAGS = $(CPPFLAGS) $(CXXFLAGS) $(MFEM_INCFLAGS)$/;"	m
+LAGHOS_HELP_MSG	makefile	/^define LAGHOS_HELP_MSG$/;"	m
+LAGHOS_LIBS	makefile	/^LAGHOS_LIBS = $(MFEM_LIBS)$/;"	m
+LDFLAGS	makefile	/^LDFLAGS =$/;"	m
+LIBS	makefile	/^LIBS = $(strip $(LAGHOS_LIBS) $(LDFLAGS))$/;"	m
+LQshape1D	laghos_assembly.hpp	/^   DenseMatrix HQshape1D, HQgrad1D, LQshape1D;$/;"	m	struct:mfem::hydrodynamics::Tensors1D
+LagrangianHydroOperator	laghos_solver.cpp	/^LagrangianHydroOperator::LagrangianHydroOperator(int size,$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+LagrangianHydroOperator	laghos_solver.hpp	/^class LagrangianHydroOperator : public TimeDependentOperator$/;"	c	namespace:mfem::hydrodynamics
+LocalMassPAOperator	laghos_assembly.hpp	/^   LocalMassPAOperator(QuadratureData *quad_data_, ParFiniteElementSpace &fes)$/;"	f	class:mfem::hydrodynamics::LocalMassPAOperator
+LocalMassPAOperator	laghos_assembly.hpp	/^class LocalMassPAOperator : public Operator$/;"	c	namespace:mfem::hydrodynamics
+MFEM_DIR	makefile	/^MFEM_DIR = ..\/..\/mfem$/;"	m
+MFEM_DIR1	makefile	/^MFEM_DIR1 := $(MFEM_DIR)$/;"	m
+MFEM_DIR2	makefile	/^MFEM_DIR2 := $(realpath $(MFEM_DIR))$/;"	m
+MFEM_LAGHOS_ASSEMBLY	laghos_assembly.hpp	18;"	d
+MFEM_LAGHOS_SOLVER	laghos_solver.hpp	18;"	d
+MFEM_LIB_FILE	makefile	/^MFEM_LIB_FILE = mfem_is_not_built$/;"	m
+MFEM_TESTS	makefile	/^MFEM_TESTS = laghos$/;"	m
+MassPAOperator	laghos_assembly.hpp	/^   MassPAOperator(QuadratureData *quad_data_, ParFiniteElementSpace &fes)$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+MassPAOperator	laghos_assembly.hpp	/^class MassPAOperator : public Operator$/;"	c	namespace:mfem::hydrodynamics
+Me_inv	laghos_solver.hpp	/^   DenseTensor Me_inv;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+MeshAdaptUpdate	laghos_solver.cpp	/^void LagrangianHydroOperator::MeshAdaptUpdate(const Vector &S,$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+Mult	laghos_assembly.cpp	/^void ForcePAOperator::Mult(const Vector &vecL2, Vector &vecH1) const$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+Mult	laghos_assembly.cpp	/^void LocalMassPAOperator::Mult(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::LocalMassPAOperator
+Mult	laghos_assembly.cpp	/^void MassPAOperator::Mult(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+Mult	laghos_solver.cpp	/^void LagrangianHydroOperator::Mult(const Vector &S, Vector &dS_dt) const$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+MultHex	laghos_assembly.cpp	/^void ForcePAOperator::MultHex(const Vector &vecL2, Vector &vecH1) const$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+MultHex	laghos_assembly.cpp	/^void LocalMassPAOperator::MultHex(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::LocalMassPAOperator
+MultHex	laghos_assembly.cpp	/^void MassPAOperator::MultHex(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+MultQuad	laghos_assembly.cpp	/^void ForcePAOperator::MultQuad(const Vector &vecL2, Vector &vecH1) const$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+MultQuad	laghos_assembly.cpp	/^void LocalMassPAOperator::MultQuad(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::LocalMassPAOperator
+MultQuad	laghos_assembly.cpp	/^void MassPAOperator::MultQuad(const Vector &x, Vector &y) const$/;"	f	class:mfem::hydrodynamics::MassPAOperator
+MultTranspose	laghos_assembly.cpp	/^void ForcePAOperator::MultTranspose(const Vector &vecH1, Vector &vecL2) const$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+MultTransposeHex	laghos_assembly.cpp	/^void ForcePAOperator::MultTransposeHex(const Vector &vecH1, Vector &vecL2) const$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+MultTransposeQuad	laghos_assembly.cpp	/^void ForcePAOperator::MultTransposeQuad(const Vector &vecH1,$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+Mv	laghos_solver.hpp	/^   mutable ParBilinearForm Mv;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+OBJECT_FILES	makefile	/^OBJECT_FILES = $(OBJECT_FILES1:.c=.o)$/;"	m
+OBJECT_FILES1	makefile	/^OBJECT_FILES1 = $(SOURCE_FILES:.cpp=.o)$/;"	m
+OPTIM_OPTS	makefile	/^OPTIM_OPTS = -O3$/;"	m
+PI	laghos.cpp	/^static double PI = 3.14159265359;$/;"	v	file:
+PI	laghos_w_Hessian.cpp	/^static double PI = 3.14159265359;$/;"	v	file:
+PREFIX	makefile	/^PREFIX = .\/bin$/;"	m
+Pow	laghos.cpp	/^void Pow(Vector &vec, double p)$/;"	f
+Pow	laghos_CFD_project.cpp	/^void Pow(Vector &vec, double p)$/;"	f
+Pow	laghos_SeparateRoutinePumiMesh.cpp	/^void Pow(Vector &vec, double p)$/;"	f
+Pow	laghos_w_Hessian.cpp	/^void Pow(Vector &vec, double p)$/;"	f
+Pow	laghos_withPrint.cpp	/^void Pow(Vector &vec, double p)$/;"	f
+PrintTimingData	laghos_solver.cpp	/^void LagrangianHydroOperator::PrintTimingData(bool IamRoot, int steps)$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+QuadratureData	laghos_assembly.hpp	/^   QuadratureData(int dim, int nzones, int quads_per_zone)$/;"	f	struct:mfem::hydrodynamics::QuadratureData
+QuadratureData	laghos_assembly.hpp	/^struct QuadratureData$/;"	s	namespace:mfem::hydrodynamics
+RUN_MPI	makefile	/^RUN_MPI = $(MFEM_MPIEXEC) $(MFEM_MPIEXEC_NP) 4$/;"	m
+ResetQuadratureData	laghos_solver.hpp	/^   void ResetQuadratureData() const { quad_data_is_current = false; }$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+ResetTimeStepEstimate	laghos_solver.cpp	/^void LagrangianHydroOperator::ResetTimeStepEstimate() const$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+Resize	laghos_assembly.hpp	/^   void Resize(int dim, int nzones, int quads_per_zone)$/;"	f	struct:mfem::hydrodynamics::QuadratureData
+SOURCE_FILES	makefile	/^SOURCE_FILES = laghos.cpp laghos_solver.cpp laghos_assembly.cpp$/;"	m
+STR	config/get_hypre_version.cpp	23;"	d	file:
+STR_EXPAND	config/get_hypre_version.cpp	22;"	d	file:
+SetH0	laghos_solver.hpp	/^   void SetH0(double h0) { quad_data.h0 = h0; }$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+SetZoneId	laghos_assembly.hpp	/^   void SetZoneId(int zid) { zone_id = zid; }$/;"	f	class:mfem::hydrodynamics::LocalMassPAOperator
+TEST_MK	makefile	/^TEST_MK = $(MFEM_DIR)\/config\/test.mk$/;"	m
+TaylorCoefficient	laghos_solver.hpp	/^class TaylorCoefficient : public Coefficient$/;"	c	namespace:mfem::hydrodynamics
+Tensors1D	laghos_assembly.cpp	/^Tensors1D::Tensors1D(int H1order, int L2order, int nqp1D)$/;"	f	class:mfem::hydrodynamics::Tensors1D
+Tensors1D	laghos_assembly.hpp	/^struct Tensors1D$/;"	s	namespace:mfem::hydrodynamics
+TimingData	laghos_solver.hpp	/^   TimingData()$/;"	f	struct:mfem::hydrodynamics::TimingData
+TimingData	laghos_solver.hpp	/^struct TimingData$/;"	s	namespace:mfem::hydrodynamics
+UpdateEssentialTrueDofs	laghos_solver.cpp	/^void LagrangianHydroOperator::UpdateEssentialTrueDofs()$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+UpdateQuadratureData	laghos_solver.cpp	/^void LagrangianHydroOperator::UpdateQuadratureData(const Vector &S) const$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
+VMassPA	laghos_solver.hpp	/^   mutable MassPAOperator VMassPA;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+VisualizeElementValues	laghos_solver.cpp	/^void VisualizeElementValues(socketstream &sock, const char *vishost,$/;"	f	namespace:mfem::hydrodynamics
+VisualizeField	laghos_solver.cpp	/^void VisualizeField(socketstream &sock, const char *vishost, int visport,$/;"	f	namespace:mfem::hydrodynamics
+cfl	laghos_solver.hpp	/^   const double cfl;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+cg_max_iter	laghos_solver.hpp	/^   const int cg_max_iter;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+cg_rel_tol	laghos_solver.hpp	/^   const double cg_rel_tol;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+changePumiMesh	laghos.cpp	/^void changePumiMesh(ParGridFunction x_gf,$/;"	f
+changePumiMesh	laghos_CFD_project.cpp	/^void changePumiMesh(ParGridFunction x_gf,$/;"	f
+changePumiMesh	laghos_w_Hessian.cpp	/^void changePumiMesh(ParGridFunction x_gf,$/;"	f
+changePumiMesh2	laghos.cpp	/^void changePumiMesh2(ParGridFunction x_gf,$/;"	f
+changePumiMesh2	laghos_w_Hessian.cpp	/^void changePumiMesh2(ParGridFunction x_gf,$/;"	f
+changePumiMeshSameMesh	laghos_CFD_project.cpp	/^void changePumiMeshSameMesh(ParGridFunction X,$/;"	f
+changePumiMeshSameMesh	laghos_w_Hessian.cpp	/^void changePumiMeshSameMesh(ParGridFunction X,$/;"	f
+computeHessian	laghos_CFD_project.cpp	/^void computeHessian(ParMesh* mesh, int order, int dim)$/;"	f
+computeHessian	laghos_w_Hessian.cpp	/^void computeHessian(ParMesh* mesh, int order, int dim)$/;"	f
+computeHessianElem	laghos_CFD_project.cpp	/^void computeHessianElem(ParMesh *mesh, int elemNum, $/;"	f
+computeHessianElem	laghos_w_Hessian.cpp	/^void computeHessianElem(ParMesh *mesh, int elemNum, $/;"	f
+dim	laghos_assembly.hpp	/^   const int dim, nzones;$/;"	m	class:mfem::hydrodynamics::ForcePAOperator
+dim	laghos_assembly.hpp	/^   const int dim, nzones;$/;"	m	class:mfem::hydrodynamics::MassPAOperator
+dim	laghos_assembly.hpp	/^   const int dim;$/;"	m	class:mfem::hydrodynamics::FastEvaluator
+dim	laghos_assembly.hpp	/^   const int dim;$/;"	m	class:mfem::hydrodynamics::LocalMassPAOperator
+dim	laghos_solver.hpp	/^   const int dim, l2dofs_cnt, h1dofs_cnt, source_type;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+display_banner	laghos.cpp	/^void display_banner(ostream & os)$/;"	f
+display_banner	laghos_CFD_project.cpp	/^void display_banner(ostream & os)$/;"	f
+display_banner	laghos_SeparateRoutinePumiMesh.cpp	/^void display_banner(ostream & os)$/;"	f
+display_banner	laghos_w_Hessian.cpp	/^void display_banner(ostream & os)$/;"	f
+display_banner	laghos_withPrint.cpp	/^void display_banner(ostream & os)$/;"	f
+dt_est	laghos_assembly.hpp	/^   double dt_est;$/;"	m	struct:mfem::hydrodynamics::QuadratureData
+e0	laghos.cpp	/^double e0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+e0	laghos_CFD_project.cpp	/^double e0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+e0	laghos_SeparateRoutinePumiMesh.cpp	/^double e0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+e0	laghos_w_Hessian.cpp	/^double e0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+e0	laghos_withPrint.cpp	/^double e0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+ess_tdofs	laghos_solver.hpp	/^   Array<int> &ess_tdofs;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+evaluator	laghos_assembly.cpp	/^const FastEvaluator *evaluator = NULL;$/;"	m	namespace:mfem::hydrodynamics	file:
+gamma	laghos.cpp	/^double gamma(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+gamma	laghos_CFD_project.cpp	/^double gamma(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+gamma	laghos_SeparateRoutinePumiMesh.cpp	/^double gamma(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+gamma	laghos_w_Hessian.cpp	/^double gamma(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+gamma	laghos_withPrint.cpp	/^double gamma(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+getLargetsSize	laghos.cpp	/^double getLargetsSize($/;"	f
+getLargetsSize	laghos_w_Hessian.cpp	/^double getLargetsSize($/;"	f
+getPointOnEllipsoid	laghos.cpp	/^apf::Vector3 getPointOnEllipsoid($/;"	f
+getPointOnEllipsoid	laghos_w_Hessian.cpp	/^apf::Vector3 getPointOnEllipsoid($/;"	f
+getXYXandFieldValuesAtXi	laghos.cpp	/^void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, const apf::Vector3 &xi,$/;"	f
+h0	laghos_assembly.hpp	/^   double h0;$/;"	m	struct:mfem::hydrodynamics::QuadratureData
+h1dofs_cnt	laghos_solver.hpp	/^   const int dim, l2dofs_cnt, h1dofs_cnt, source_type;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+hydrodynamics	laghos.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_CFD_project.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_SeparateRoutinePumiMesh.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_assembly.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_assembly.hpp	/^namespace hydrodynamics$/;"	n	namespace:mfem
+hydrodynamics	laghos_solver.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_solver.hpp	/^namespace hydrodynamics$/;"	n	namespace:mfem
+hydrodynamics	laghos_w_Hessian.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+hydrodynamics	laghos_withPrint.cpp	/^namespace hydrodynamics$/;"	n	namespace:mfem	file:
+integ_rule	laghos_solver.hpp	/^   const IntegrationRule &integ_rule;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+isPumiMesh	laghos_SeparateRoutinePumiMesh.cpp	/^static Mesh* isPumiMesh(bool ifPumiMesh) $/;"	f	file:
+l2dofs_cnt	laghos_solver.hpp	/^   const int dim, l2dofs_cnt, h1dofs_cnt, source_type;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+locCG	laghos_solver.hpp	/^   CGSolver locCG;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+locEMassPA	laghos_solver.hpp	/^   mutable LocalMassPAOperator locEMassPA;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+main	config/get_hypre_version.cpp	/^int main()$/;"	f
+main	laghos.cpp	/^int main(int argc, char *argv[])$/;"	f
+main	laghos_CFD_project.cpp	/^int main(int argc, char *argv[])$/;"	f
+main	laghos_SeparateRoutinePumiMesh.cpp	/^int main(int argc, char *argv[])$/;"	f
+main	laghos_w_Hessian.cpp	/^int main(int argc, char *argv[])$/;"	f
+main	laghos_withPrint.cpp	/^int main(int argc, char *argv[])$/;"	f
+makeEllipsoid	laghos.cpp	/^void makeEllipsoid($/;"	f
+makeEllipsoid	laghos_w_Hessian.cpp	/^void makeEllipsoid($/;"	f
+material_pcf	laghos_solver.hpp	/^   Coefficient *material_pcf;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+mfem	laghos.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_CFD_project.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_SeparateRoutinePumiMesh.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_assembly.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_assembly.hpp	/^namespace mfem$/;"	n
+mfem	laghos_solver.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_solver.hpp	/^namespace mfem$/;"	n
+mfem	laghos_w_Hessian.cpp	/^namespace mfem$/;"	n	file:
+mfem	laghos_withPrint.cpp	/^namespace mfem$/;"	n	file:
+nzones	laghos_assembly.hpp	/^   const int dim, nzones;$/;"	m	class:mfem::hydrodynamics::ForcePAOperator
+nzones	laghos_assembly.hpp	/^   const int dim, nzones;$/;"	m	class:mfem::hydrodynamics::MassPAOperator
+nzones	laghos_solver.hpp	/^   int nzones;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+p_assembly	laghos_solver.hpp	/^   const bool use_viscosity, p_assembly;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+printValuesToFile	laghos_withPrint.cpp	/^void printValuesToFile(ParMesh* m,$/;"	f
+problem	laghos.cpp	/^int problem = 1;$/;"	v
+problem	laghos_CFD_project.cpp	/^int problem = 1;$/;"	v
+problem	laghos_SeparateRoutinePumiMesh.cpp	/^int problem;$/;"	v
+problem	laghos_w_Hessian.cpp	/^int problem = 1;$/;"	v
+problem	laghos_withPrint.cpp	/^int problem = 1;$/;"	v
+quad_data	laghos_assembly.hpp	/^   QuadratureData *quad_data;$/;"	m	class:mfem::hydrodynamics::ForcePAOperator
+quad_data	laghos_assembly.hpp	/^   QuadratureData *quad_data;$/;"	m	class:mfem::hydrodynamics::LocalMassPAOperator
+quad_data	laghos_assembly.hpp	/^   QuadratureData *quad_data;$/;"	m	class:mfem::hydrodynamics::MassPAOperator
+quad_data	laghos_assembly.hpp	/^   const QuadratureData &quad_data;$/;"	m	class:mfem::hydrodynamics::DensityIntegrator
+quad_data	laghos_assembly.hpp	/^   const QuadratureData &quad_data;$/;"	m	class:mfem::hydrodynamics::ForceIntegrator
+quad_data	laghos_solver.hpp	/^   mutable QuadratureData quad_data;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+quad_data_is_current	laghos_solver.hpp	/^   mutable bool quad_data_is_current;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+quad_tstep	laghos_solver.hpp	/^   int H1cg_iter, L2dof_iter, quad_tstep;$/;"	m	struct:mfem::hydrodynamics::TimingData
+rho0	laghos.cpp	/^double rho0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+rho0	laghos_CFD_project.cpp	/^double rho0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+rho0	laghos_SeparateRoutinePumiMesh.cpp	/^double rho0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+rho0	laghos_solver.hpp	/^   ParGridFunction &rho0;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+rho0	laghos_w_Hessian.cpp	/^double rho0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+rho0	laghos_withPrint.cpp	/^double rho0(const Vector &x)$/;"	f	namespace:mfem::hydrodynamics
+rho0DetJ0w	laghos_assembly.hpp	/^   Vector rho0DetJ0w;$/;"	m	struct:mfem::hydrodynamics::QuadratureData
+rho0_coeff	laghos_solver.hpp	/^   GridFunctionCoefficient rho0_coeff; \/\/ TODO: remove when Mv update improved$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+safe_mkdir	laghos.cpp	/^void safe_mkdir(const char* path)$/;"	f
+safe_mkdir	laghos_w_Hessian.cpp	/^void safe_mkdir(const char* path)$/;"	f
+setBdryAttributes	laghos.cpp	/^void setBdryAttributes(Mesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setBdryAttributes	laghos_CFD_project.cpp	/^void setBdryAttributes(Mesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setBdryAttributes	laghos_w_Hessian.cpp	/^void setBdryAttributes(Mesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setBdryAttributes	laghos_withPrint.cpp	/^void setBdryAttributes(Mesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setNodeCoordinates	laghos.cpp	/^void setNodeCoordinates(apf::Mesh2* pumi_mesh, int order, IntegrationRule &pumi_nodes)$/;"	f
+setNodeCoordinates	laghos_CFD_project.cpp	/^void setNodeCoordinates(apf::Mesh2* pumi_mesh, int order, IntegrationRule &pumi_nodes)$/;"	f
+setNodeCoordinates	laghos_w_Hessian.cpp	/^void setNodeCoordinates(apf::Mesh2* pumi_mesh, int order, IntegrationRule &pumi_nodes)$/;"	f
+setNodeCoordinates	laghos_withPrint.cpp	/^void setNodeCoordinates(apf::Mesh2* pumi_mesh, int order, IntegrationRule &pumi_nodes)$/;"	f
+setParBdryAttributes	laghos.cpp	/^void setParBdryAttributes(ParMesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setParBdryAttributes	laghos_CFD_project.cpp	/^void setParBdryAttributes(ParMesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+setParBdryAttributes	laghos_w_Hessian.cpp	/^void setParBdryAttributes(ParMesh* mesh, apf::Mesh2* pumi_mesh)$/;"	f
+source_type	laghos_solver.hpp	/^   const int dim, l2dofs_cnt, h1dofs_cnt, source_type;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+stressJinvT	laghos_assembly.hpp	/^   DenseTensor stressJinvT;$/;"	m	struct:mfem::hydrodynamics::QuadratureData
+sw_cgH1	laghos_solver.hpp	/^   StopWatch sw_cgH1, sw_cgL2, sw_force, sw_qdata;$/;"	m	struct:mfem::hydrodynamics::TimingData
+sw_cgL2	laghos_solver.hpp	/^   StopWatch sw_cgH1, sw_cgL2, sw_force, sw_qdata;$/;"	m	struct:mfem::hydrodynamics::TimingData
+sw_force	laghos_solver.hpp	/^   StopWatch sw_cgH1, sw_cgL2, sw_force, sw_qdata;$/;"	m	struct:mfem::hydrodynamics::TimingData
+sw_qdata	laghos_solver.hpp	/^   StopWatch sw_cgH1, sw_cgL2, sw_force, sw_qdata;$/;"	m	struct:mfem::hydrodynamics::TimingData
+tensors1D	laghos_assembly.cpp	/^const Tensors1D *tensors1D = NULL;$/;"	m	namespace:mfem::hydrodynamics	file:
+timer	laghos_solver.hpp	/^   mutable TimingData timer;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+transferFieldToPUMI	laghos.cpp	/^void transferFieldToPUMI(ParGridFunction pgf,$/;"	f
+use_viscosity	laghos_solver.hpp	/^   const bool use_viscosity, p_assembly;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+v0	laghos.cpp	/^void v0(const Vector &x, Vector &v)$/;"	f	namespace:mfem::hydrodynamics
+v0	laghos_CFD_project.cpp	/^void v0(const Vector &x, Vector &v)$/;"	f	namespace:mfem::hydrodynamics
+v0	laghos_SeparateRoutinePumiMesh.cpp	/^void v0(const Vector &x, Vector &v)$/;"	f	namespace:mfem::hydrodynamics
+v0	laghos_w_Hessian.cpp	/^void v0(const Vector &x, Vector &v)$/;"	f	namespace:mfem::hydrodynamics
+v0	laghos_withPrint.cpp	/^void v0(const Vector &x, Vector &v)$/;"	f	namespace:mfem::hydrodynamics
+visualizeSizeField	laghos.cpp	/^void visualizeSizeField($/;"	f
+visualizeSizeField	laghos_w_Hessian.cpp	/^void visualizeSizeField($/;"	f
+x0_gf	laghos_solver.hpp	/^   ParGridFunction x0_gf; \/\/ copy of initial mesh position$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+zone_id	laghos_assembly.hpp	/^   int zone_id;$/;"	m	class:mfem::hydrodynamics::LocalMassPAOperator
+zone_max_visc	laghos_solver.hpp	/^   mutable Vector zone_max_visc, zone_vgrad;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+zone_vgrad	laghos_solver.hpp	/^   mutable Vector zone_max_visc, zone_vgrad;$/;"	m	class:mfem::hydrodynamics::LagrangianHydroOperator
+~ForcePAOperator	laghos_assembly.hpp	/^   ~ForcePAOperator() { }$/;"	f	class:mfem::hydrodynamics::ForcePAOperator
+~LagrangianHydroOperator	laghos_solver.cpp	/^LagrangianHydroOperator::~LagrangianHydroOperator()$/;"	f	class:mfem::hydrodynamics::LagrangianHydroOperator
