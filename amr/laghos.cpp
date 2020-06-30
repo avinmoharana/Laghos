@@ -55,7 +55,7 @@ using namespace mfem;
 using namespace mfem::hydrodynamics;
 
 // Choice for the problem setup.
-int problem;
+int problem = 1;
 
 void display_banner(ostream & os);
 
@@ -75,6 +75,14 @@ void GetPerElementMinMax(const GridFunction &gf,
                          Vector &elem_min, Vector &elem_max,
                          int int_order = -1);
 
+void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
+    const ParFiniteElementSpace &L2FESpace,
+    const BlockVector &S,
+    const char* name, int count, int res);
+
+double getMinJacobian(ParMesh* pmesh,
+        ParFiniteElementSpace &h1,
+	ParFiniteElementSpace &l2);
 
 int main(int argc, char *argv[])
 {
@@ -86,25 +94,27 @@ int main(int argc, char *argv[])
    if (mpi.Root()) { display_banner(cout); }
 
    // Parse command-line options.
-   const char *mesh_file = "data/square01_quad.mesh";
+   //const char *mesh_file = "../data/cube01_hex.mesh";
+   //const char *mesh_file = "/users/mohara/Desktop/cubeC/cubeC_tet_6.mesh";
+   const char *mesh_file = "/users/mohara/Desktop/cube/box_hex.mesh";
    int rs_levels = 0;
    int rp_levels = 0;
    int order_v = 2;
-   int order_e = 1;
+   int order_e = 0;
    int ode_solver_type = 4;
-   double t_final = 0.5;
+   double t_final = 0.8;
    double cfl = 0.5;
    double cg_tol = 1e-8;
    int cg_max_iter = 300;
    int max_tsteps = -1;
-   bool p_assembly = true;
+   bool p_assembly = true; // true for hex mesh
    bool visualization = false;
    int vis_steps = 5;
    bool visit = false;
    bool gfprint = false;
    const char *basename = "results/Laghos";
    int partition_type = 111;
-   bool amr = false;
+   bool amr = true;
    double ref_threshold = 2e-4;
    double deref_threshold = 0.75;
    const int nc_limit = 1;
@@ -506,6 +516,8 @@ int main(int argc, char *argv[])
    bool last_step = false;
    int steps = 0;
    BlockVector S_old(S);
+
+   int count = 0;
    for (int ti = 1; !last_step; ti++)
    {
       if (t + dt >= t_final)
@@ -717,6 +729,20 @@ int main(int argc, char *argv[])
             //H1FESpace.PrintPartitionStats();
          }
       }
+      double minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
+      std::cout<<" min det J "<<minJdet<<std::endl;
+
+      int tint = t/0.1;
+
+      if ( tint == count ) {
+      	writeMfemMesh(H1FESpace, L2FESpace, S, "mesh_after_",
+      	    count, order_v);
+      	count++;
+      }
+
+      if (last_step)
+      	writeMfemMesh(H1FESpace, L2FESpace, S, "mesh_after_hex_",
+      	    steps, 1);
    }
 
    switch (ode_solver_type)
@@ -741,6 +767,36 @@ int main(int argc, char *argv[])
 
    return 0;
 }
+
+double getMinJacobian(ParMesh* pmesh,
+        ParFiniteElementSpace &h1,
+            ParFiniteElementSpace &l2)
+{
+    IntegrationRule ir = IntRules.Get(pmesh->GetElementBaseGeometry(0),
+    	        3*h1.GetOrder(0) + l2.GetOrder(0) - 1);
+    int nqp = ir.GetNPoints();
+    double jmin = 10000;
+
+    for( int i = 0; i < pmesh->GetNE(); i++) {
+      ElementTransformation *T = h1.GetElementTransformation(i);
+      for( int j = 0; j < nqp; j++) {
+	IntegrationPoint &ip = ir.IntPoint(j);
+	T->SetIntPoint(&ip);
+	DenseMatrix J(T->Jacobian());
+	double jDet = J.Det();
+	if (jDet < jmin) jmin = jDet;
+      }
+    }
+    return jmin;
+}
+
+
+
+
+
+
+
+
 
 
 void GetZeroBCDofs(ParMesh *pmesh, ParFiniteElementSpace *pspace,
@@ -957,3 +1013,33 @@ void display_banner(ostream & os)
       << "   /_____/\\__,_/\\__, /_/ /_/\\____/____/  " << endl
       << "               /____/                       " << endl << endl;
 }
+
+void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
+    const ParFiniteElementSpace &L2FESpace,
+    const BlockVector &S,
+    const char* name, int count, int res) 
+{
+  ParMesh* pmesh = H1FESpace.GetParMesh();
+  ParFiniteElementSpace* h1 = (ParFiniteElementSpace*) &H1FESpace;
+  ParFiniteElementSpace* l2 = (ParFiniteElementSpace*) &L2FESpace;
+  BlockVector* Sptr = (BlockVector*) &S;
+  ParGridFunction x, v, e;
+  x.MakeRef(h1, *Sptr, 0);
+  v.MakeRef(h1, *Sptr, h1->GetVSize());
+  e.MakeRef(l2, *Sptr, 2 * (h1->GetVSize()));
+
+  std::stringstream ss;
+  ss << name << count<<".vtk";
+
+  ofstream mesh_vtk_ofs(ss.str().c_str());
+  pmesh->PrintVTK(mesh_vtk_ofs, res);
+  x.SaveVTK(mesh_vtk_ofs, "coordinate_field", res);
+  v.SaveVTK(mesh_vtk_ofs, "velocity_field", res);
+  e.SaveVTK(mesh_vtk_ofs, "energy_field", res);
+  std::stringstream ss1;
+  ss1<<name<<count<<".vtu";
+  ofstream mesh_vtu(ss1.str().c_str());
+  pmesh->PrintVTU(mesh_vtu, res, VTKFormat::ASCII, true, 0); 
+}
+
+

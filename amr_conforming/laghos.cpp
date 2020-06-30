@@ -133,7 +133,8 @@ void changePumiMesh(ParGridFunction x_gf,
     int order);
 
 void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3 &xi,
-    std::vector<apf::Vector3> &xyz, std::vector<apf::Vector3> &fv);
+    std::vector<apf::Vector3> &xyz, std::vector<apf::Vector3> &fv,
+    std::vector<int> &clas);
 
 void computeSizefield(const ParFiniteElementSpace &H1FESpace,
     const ParGridFunction &grad_v,
@@ -147,9 +148,14 @@ void writePumiMesh(apf::Mesh2* mesh, const char* name, int count);
 void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
     const ParFiniteElementSpace &L2FESpace,
     const BlockVector &S,
+    ParGridFunction rho,
     const char* name, int count, int res);
 
 void snapCoordinateField(apf::Mesh2* mesh, apf::Field* f);
+
+double getMinJacobian(ParMesh* pmesh,
+    ParFiniteElementSpace &h1,
+    ParFiniteElementSpace &l2);
 
 int main(int argc, char *argv[])
 {
@@ -168,15 +174,16 @@ int main(int argc, char *argv[])
   const char *simx_model_file = "/users/mohara/Desktop/cubeC/cubeC_nat.smd";
 
   int geom_order = 2;
+  int num_adapt = 400;
 
   // Laghos command-line options
   int rs_levels = 0;
   int rp_levels = 0;
-  int order_v = 2;
-  int order_e = 1;
-  int ode_solver_type = 1;//4;
-  double t_final = 0.5;
-  double cfl = 0.75;
+  int order_v = geom_order;
+  int order_e = 0;
+  int ode_solver_type = 1;//4; //used default ;
+  double t_final = 1;
+  double cfl = 0.5;
   double cg_tol = 1e-8;
   int cg_max_iter = 300;
   int max_tsteps = -1;
@@ -190,7 +197,7 @@ int main(int argc, char *argv[])
   double ref_threshold = 2e-4;
   double deref_threshold = 0.75;
   const int nc_limit = 0;
-  const double blast_energy = 0.25;
+  const double blast_energy = 0.25; // 0.25 default
   const double blast_position[] = {0.0, 0.0, 0.0};
   const double blast_amr_size = 1e-10;
   double adapt_ratio = 0.06;
@@ -313,19 +320,13 @@ int main(int argc, char *argv[])
     std::cout << " ref level : " <<     ref_levels << std::endl;
   }
 
-  if (ref_levels > 1)
-  {   
+  if (ref_levels > 1) {
     ma::Input* uniInput = ma::configureUniformRefine(pumi_mesh, ref_levels);
-
     if ( geom_order > 1)
-    {   
       crv::adapt(uniInput);
-    }   
     else
-    {   
       ma::adapt(uniInput);
-    }   
-  }   
+  }
 
   pumi_mesh->verify();
   pumi_mesh->acceptChanges();
@@ -334,7 +335,7 @@ int main(int argc, char *argv[])
 
   ParMesh *pmesh = new ParPumiMesh(MPI_COMM_WORLD, pumi_mesh);
 
-  setParBdryAttributes(pmesh, pumi_mesh); 
+  setParBdryAttributes(pmesh, pumi_mesh);
 
   for (int lev = 0; lev < rp_levels; lev++)
   {
@@ -470,7 +471,7 @@ int main(int argc, char *argv[])
     case 3: visc = true; break;
     default: MFEM_ABORT("Wrong problem specification!");
   }
-  visc = false; // added; since adapt through pumi
+  //visc = false; // added; since adapt through pumi
 
   LagrangianHydroOperator oper(S.Size(), H1FESpace, L2FESpace,
       ess_tdofs, rho0_gf, source, cfl, material_pcf,
@@ -480,7 +481,7 @@ int main(int argc, char *argv[])
   {
     // set a base for h0, this will be further divided in UpdateQuadratureData
     // TODO: for AMR, the treatment of h0 needs more work
-    double elem_size = 1; //0.5 set default; coarse element size (TODO calculate)
+    double elem_size = 0.5; //0.5 set default; coarse element size (TODO calculate)
     double h0 = elem_size / order_v;
     oper.SetH0(h0);
   }
@@ -546,6 +547,7 @@ int main(int argc, char *argv[])
 
   ParGridFunction x0_gf(&H1FESpace);
   x0_gf = x_gf;
+  double minJdet;
 
   for (int ti = 1; !last_step; ti++)
   {
@@ -569,7 +571,7 @@ int main(int argc, char *argv[])
     // to advance.
     cout<<" computing new soultion with dt "<<dt<<endl;
     ode_solver->Step(S, t, dt);
-    cout<<" computed new solution "<<endl;
+    //cout<<" computed new solution "<<endl;
     //steps++;
 
     // Adaptive time step control.
@@ -592,8 +594,6 @@ int main(int argc, char *argv[])
 
     // Make sure that the mesh corresponds to the new solution state.
     pmesh->NewNodes(x_gf, false);
-    //VectorGridFunctionCoefficient x0_coeff(x0_gf);
-    //x0_gf.ProjectCoefficient(x0_coeff);
     x0_gf.Update();
 
     if (last_step || (ti % vis_steps) == 0)
@@ -683,11 +683,28 @@ int main(int argc, char *argv[])
 
     oper.ComputeDensity(rho_gf);
     setParBdryAttributes(pmesh, pumi_mesh);
+    oper.UpdateEssentialTrueDofs();
 
-    changePumiMesh(x_gf, pmesh, pumi_mesh, geom_order);
-    pumi_mesh->verify();
+    ofstream mesh_ofs1("meshBeforeAdapt.mesh");
+    pmesh->Print(mesh_ofs1);
 
-    if (steps % 5 == 0 && steps != 0) {
+    minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
+    std::cout<<" min J det in the mesh "<<minJdet<<std::endl;
+
+    //Vector &error_est = oper.GetZoneMaxVisc();
+    //bool adapt_mesh = false;
+
+    //for (int i = 0; i < pmesh->GetNE(); i++) {
+    //  if (error_est(i) > ref_threshold )
+    //  	adapt_mesh = true;
+    //}
+    //if (last_step) {
+    if (steps % num_adapt == 0 && steps != 0) {
+    //if (adapt_mesh) {
+    //if (minJdet < 5*10e-3) {
+
+      changePumiMesh(x_gf, pmesh, pumi_mesh, geom_order);
+      pumi_mesh->verify();
       // Hessian of velocity computation
       ParFiniteElementSpace *fespace_scalar = new ParFiniteElementSpace(pmesh, &H1FEC, 1, Ordering::byVDIM);
       ParGridFunction v_mag(fespace_scalar);
@@ -716,18 +733,18 @@ int main(int argc, char *argv[])
 
       writePumiMesh(pumi_mesh, "beforeAdapt", steps);
 
-      writeMfemMesh(H1FESpace, L2FESpace, S,
-	  "before_adapt", steps, 2);
+      writeMfemMesh(H1FESpace, L2FESpace, S, rho_gf,
+	  "before_adapt", steps, order_v);
 
       // Fields on PUMI,
       // currently the mesh coordinate field after adapt is used
       // to define the coordinate gridfunction in MFEM
-/*
-      apf::Field *Coords = apf::createField(
+
+      apf::Field *Coords_ref = apf::createField(
 	  pumi_mesh, "CoordField", apf::VECTOR, crv::getBezier(order_v));
       apf::Field *Coords_mag_field = apf::createField(
 	  pumi_mesh, "Coords_mag", apf::SCALAR, crv::getBezier(order_v));
-*/
+
       apf::Field *vel_field = apf::createField(
 	  pumi_mesh, "vel", apf::VECTOR, crv::getBezier(order_v));
       apf::Field *vel_mag_field = apf::createField(
@@ -750,20 +767,23 @@ int main(int argc, char *argv[])
 
       cout<<pumi_mesh->countFields()<<" Fields on pumi initiated"<<endl;
 
+      ofstream mesh_ofs2("meshInsideAdapt.mesh");
+      pmesh->Print(mesh_ofs2);
+
       ParPumiMesh* pPPmesh = dynamic_cast<ParPumiMesh*>(pmesh);
       std::cout<<"parmesh casted to parpumimesh"<<std::endl;
 
       // populate PUMI fields from MFEM
 
       pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &x0_gf, initialCoords, initial_mag_field);
-      //pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &x_gf, Coords, Coords_mag_field);
+      pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &x_gf, Coords_ref, Coords_mag_field);
       pPPmesh->VectorFieldMFEMtoPUMI(pumi_mesh, &v_gf, vel_field, vel_mag_field);
       pPPmesh->FieldMFEMtoPUMI(pumi_mesh, &e_gf, e_field, e_mag_field);
       pPPmesh->FieldMFEMtoPUMI(pumi_mesh, &rho_gf, rho_field, rho_mag_field);
 
-      // convert the fields to have a Bezier representation
+      // convert fields to Bezier
 
-      //crv::convertInterpolatingFieldToBezier(pumi_mesh, Coords);
+      crv::convertInterpolatingFieldToBezier(pumi_mesh, Coords_ref);
       crv::convertInterpolatingFieldToBezier(pumi_mesh, vel_field);
       crv::convertInterpolatingFieldToBezier(pumi_mesh, initialCoords);
 
@@ -802,6 +822,7 @@ int main(int argc, char *argv[])
       while ((ent = pumi_mesh->iterate(it))) {
 	double val = apf::getScalar(e_field, ent, 0);
 	sum += val*apf::measure(pumi_mesh, ent);
+	//sum += val;
       }
       pumi_mesh->end(it);
       std::cout<<" total energy values before adapt"<< sum<<std::endl;
@@ -814,8 +835,17 @@ int main(int argc, char *argv[])
 
       // 19. Perform MeshAdapt
       // setup adapt for sizes and frames
+/*
+      apf::Vector3 xiMid = apf::Vector3(0.5, 0, 0);
+      std::vector<apf::Vector3> xyzV, fvalue;
+      std::vector<int> clas;
 
+      getXYXandFieldValuesAtXi(pumi_mesh, Coords_ref, xiMid, xyzV, fvalue, clas);
+      for (size_t ij = 0; ij < xyzV.size(); ij++)
+	std::cout<< xyzV[ij]-fvalue[ij]<<"  "<<clas[ij]<<std::endl;
+*/
       ma::Input* erinput = ma::configure(pumi_mesh, sizes, frames, 0, true);
+      //ma::Input* erinput = ma::configureIdentity(pumi_mesh, 0, 0);
       //ma::Input* erinput = ma::configureUniformRefine(pumi_mesh, 1, 0);
       erinput->shouldSnap = false;
       erinput->shouldTransferParametric = false;
@@ -833,16 +863,20 @@ int main(int argc, char *argv[])
       std::cout<<"adapt end"<<std::endl;
 
       apf::Field* Coords = pumi_mesh->getCoordinateField();
-      //snapCoordinateField(pumi_mesh, Coords);
+      apf::FieldShape *fsTest = apf::getShape(Coords);
+      std::string name = fsTest->getName();
+      std::cout<<" name of coord field "<< name <<std::endl;
 
-      /* compare coordinate field values after adapt
+      snapCoordinateField(pumi_mesh, Coords_ref);
+
+      // compare coordinate field values after adapt
       apf::Vector3 xiMid = apf::Vector3(0.5, 0, 0);
       std::vector<apf::Vector3> xyzV, fvalue;
+      std::vector<int> clas;
 
-      getXYXandFieldValuesAtXi(pumi_mesh, Coords, xiMid, xyzV, fvalue);
+      getXYXandFieldValuesAtXi(pumi_mesh, Coords_ref, xiMid, xyzV, fvalue, clas);
       for (size_t ij = 0; ij < xyzV.size(); ij++)
-	std::cout<< xyzV[ij]-fvalue[ij]<<std::endl;
-      */
+	std::cout<< xyzV[ij]-fvalue[ij]<<"  "<<clas[ij]<<std::endl;
 
       safe_mkdir("size_field_after");
       sampleSize[0] = 10;
@@ -856,6 +890,7 @@ int main(int argc, char *argv[])
       while ((ent = pumi_mesh->iterate(it))) {
 	double val = apf::getScalar(e_field, ent, 0);
 	sum += val*apf::measure(pumi_mesh, ent);
+	//sum += val;
       }
       pumi_mesh->end(it);
       cout<<" total energy values after adapt"<< sum<<endl;
@@ -872,19 +907,23 @@ int main(int argc, char *argv[])
       setParBdryAttributes(pmesh, pumi_mesh);
       cout<<"Reached HERE-------------01.5"<<endl;
 
+      ofstream mesh_ofs3("meshAfterAdapt.mesh");
+      pmesh->Print(mesh_ofs3);
+
       // 20. Update the FiniteElementSpace, Gridfunction, and bilinear form
       H1FESpace.Update();
       L2FESpace.Update();
       cout<<"Reached HERE-------------01.75"<<endl;
       //Update Essential true dofs
-      oper.UpdateEssentialTrueDofs();
+      //oper.UpdateEssentialTrueDofs();
 
       cout<<"Reached HERE-------------01.80"<<endl;
 
       Vsize_l2 = L2FESpace.GetVSize();
       Vsize_h1 = H1FESpace.GetVSize();
       std::cout<<"Reached HERE-------------02"<<std::endl;
-      std::cout<<" H1 space size "<<Vsize_h1<<std::endl;
+      std::cout<<" H1 space size "<<Vsize_h1<<" L2 space size "<<
+      	Vsize_l2<<std::endl;
       Array<int> updated_offset(4);
       updated_offset[0] = 0;
       updated_offset[1] = updated_offset[0] + Vsize_h1;
@@ -892,6 +931,7 @@ int main(int argc, char *argv[])
       updated_offset[3] = updated_offset[2] + Vsize_l2;
       S.Update(updated_offset);
       std::cout<<"Reached HERE-------------03"<<std::endl;
+      S_old.Update(updated_offset);
       x_gf.Update();
       v_gf.Update();
       e_gf.Update();
@@ -908,10 +948,14 @@ int main(int argc, char *argv[])
       cout<<"Reached HERE----------------03.5"<<endl;
       pPPmesh->FieldPUMItoMFEM(pumi_mesh, e_field, &e_gf);
       std::cout<<"Reached HERE-------------04"<<std::endl;
-      pPPmesh->FieldPUMItoMFEM(pumi_mesh, rho_field, &rho_gf);
+      //pPPmesh->FieldPUMItoMFEM(pumi_mesh, rho_field, &rho_gf);
       std::cout<<"Reached HERE-------------05"<<std::endl;
+      //Update Essential true dofs
+      oper.UpdateEssentialTrueDofs();
+      // Set vx, vy, vz = 0 on respective faces
+      GetZeroBCDofs(pmesh, &H1FESpace, bdr_attr_max, ess_tdofs);
 
-      // if we want to change the mesh to the user defined coordinate
+      // if we want to change the mesh to a user defined coordinate
       // field after adapt
       //changePumiMesh(x_gf, pmesh, pumi_mesh, geom_order);
 
@@ -929,21 +973,29 @@ int main(int argc, char *argv[])
       block2 = e_data;
 
       oper.MeshAdaptUpdate(S, x0_gf, x_gf);
-      S_old.Update(updated_offset);
+
+      std::cout<<"Reached HERE-------------05.5"<<std::endl;
+
+      std::cout<<"Reached HERE-------------05.75"<<std::endl;
+      //S_old.Update(updated_offset);
       std::cout<<"Reached HERE-------------06"<<std::endl;
 
       // Set vx, vy, vz = 0 on respective faces
-      GetZeroBCDofs(pmesh, &H1FESpace, bdr_attr_max, ess_tdofs);
+      //GetZeroBCDofs(pmesh, &H1FESpace, bdr_attr_max, ess_tdofs);
       ode_solver->Init(oper);
 
       std::cout<<"Reached HERE-------------07"<<std::endl;
+
+      minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
+
+      std::cout<<" min J det in the mesh "<<minJdet<<std::endl;
 
       //Destroy fields and mesh
       delete Adapmesh;
       apf::destroyField(sizes);
       apf::destroyField(frames);
-      //apf::destroyField(Coords);
-      //apf::destroyField(Coords_mag_field);
+      apf::destroyField(Coords_ref);
+      apf::destroyField(Coords_mag_field);
       apf::destroyField(vel_field);
       apf::destroyField(vel_mag_field);
       apf::destroyField(e_field);
@@ -960,8 +1012,8 @@ int main(int argc, char *argv[])
       block2.Destroy();
 
       writePumiMesh(pumi_mesh, "afterAdapt", steps);
-      writeMfemMesh(H1FESpace, L2FESpace, S,
-	  "after_adapt", steps, 2);
+      writeMfemMesh(H1FESpace, L2FESpace, S, rho_gf,
+	  "after_adapt", steps, order_v);
     }
 
     steps++;
@@ -1015,6 +1067,7 @@ void writePumiMesh(apf::Mesh2* mesh, const char* name, int count)
 void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
     const ParFiniteElementSpace &L2FESpace,
     const BlockVector &S,
+    ParGridFunction rho,
     const char* name, int count, int res)
 {
   ParMesh* pmesh = H1FESpace.GetParMesh();
@@ -1034,6 +1087,31 @@ void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
   x.SaveVTK(mesh_vtk_ofs, "coordinate_field", res);
   v.SaveVTK(mesh_vtk_ofs, "velocity_field", res);
   e.SaveVTK(mesh_vtk_ofs, "energy_field", res);
+  rho.SaveVTK(mesh_vtk_ofs, "density_field", res);
+  e.SaveVTK(mesh_vtk_ofs, "energy_order1", 1);
+  rho.SaveVTK(mesh_vtk_ofs, "density_order1", 1);
+}
+
+double getMinJacobian(ParMesh* pmesh,
+    ParFiniteElementSpace &h1,
+    ParFiniteElementSpace &l2)
+{
+  IntegrationRule ir = IntRules.Get(pmesh->GetElementBaseGeometry(0),
+  	3*h1.GetOrder(0) + l2.GetOrder(0) - 1);
+  int nqp = ir.GetNPoints();
+  double jmin = 10000;
+
+  for( int i = 0; i < pmesh->GetNE(); i++) {
+    ElementTransformation *T = h1.GetElementTransformation(i);
+    for( int j = 0; j < nqp; j++) {
+      IntegrationPoint &ip = ir.IntPoint(j);
+      T->SetIntPoint(&ip);
+      DenseMatrix J(T->Jacobian());
+      double jDet = J.Det();
+      if (jDet < jmin) jmin = jDet;
+    }
+  }
+  return jmin;
 }
 
 void snapCoordinateField(apf::Mesh2* mesh, apf::Field* f)
@@ -1161,7 +1239,8 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
 }
 
 void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3 &xi,
-    std::vector<apf::Vector3> &xyz, std::vector<apf::Vector3> &fv)
+    std::vector<apf::Vector3> &xyz, std::vector<apf::Vector3> &fv,
+    std::vector<int> &clas)
 {
   int iel = 0;
   apf::MeshEntity* et;
@@ -1181,10 +1260,10 @@ void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3
     pumi_mesh->getPoint(et, 0, xv);
     //mapLocalToGlobal(vmfe, xi, xv);
 
-    if ( pumi_mesh->getModelType(pumi_mesh->toModel(et)) == 3 ) {
-      xyz.push_back(xv);
-      fv.push_back(vfv);
-    }
+    clas.push_back(pumi_mesh->getModelType(pumi_mesh->toModel(et)) );
+    xyz.push_back(xv);
+    fv.push_back(vfv);
+
     apf::destroyMeshElement(vmfe);
     apf::destroyElement(vfe);
     iel++;

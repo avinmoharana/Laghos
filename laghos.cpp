@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
    // Parse command-line options.
    problem = 1;
    int dim = 3;
-   const char *mesh_file = "default";
+   const char *mesh_file = "/data/cube01_hex.mesh";
    int rs_levels = 2;
    int rp_levels = 0;
    Array<int> cxyz;

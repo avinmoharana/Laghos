@@ -44,7 +44,6 @@ include_directories(${MFEM_INCLUDE_DIR})
 include_directories(${PUMI_INCLUDE_DIR})
 target_link_libraries(laghos_solver ${CMAKE_THREAD_LIBS_INIT} ${MFEM_LIB_DIR}/libmfem.a)
 
-
 add_executable(laghos ${CMAKE_CURRENT_SOURCE_DIR}/laghos.cpp)
 include_directories(${SIMMODSUITE_INCLUDE_DIR})
 include_directories(${MFEM_INCLUDE_DIR})
@@ -58,4 +57,19 @@ target_link_libraries(laghos ${MFEM_LIB_DIR}/libmfem.a
                              laghos_assembly)
 if(ENABLE_SIMMETRIX)
   target_link_libraries(laghos ${SIMMODSUITE_LIBS})
+endif()
+
+add_executable(laghos_trial ${CMAKE_CURRENT_SOURCE_DIR}/laghos_trial.cpp)
+include_directories(${SIMMODSUITE_INCLUDE_DIR})
+include_directories(${MFEM_INCLUDE_DIR})
+include_directories(${PUMI_INCLUDE_DIR})
+
+target_link_libraries(laghos_trial ${MFEM_LIB_DIR}/libmfem.a
+                             ${HYPRE_LIBRARIES}
+                             ${METIS_LIBRARIES}
+                             SCOREC::core
+                             laghos_solver
+                             laghos_assembly)
+if(ENABLE_SIMMETRIX)
+  target_link_libraries(laghos_trial ${SIMMODSUITE_LIBS})
 endif()

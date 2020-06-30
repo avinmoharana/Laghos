@@ -63,12 +63,13 @@ PREFIX ?= ./bin
 INSTALL = /usr/bin/install
 
 # Use the MFEM source, build, or install directory
-MFEM_DIR ?= ../mfem
+MFEM_DIR ?= ../../mfem/build
 CONFIG_MK = $(MFEM_DIR)/config/config.mk
 ifeq ($(wildcard $(CONFIG_MK)),)
    CONFIG_MK = $(MFEM_DIR)/share/mfem/config.mk
 endif
-TEST_MK = $(MFEM_TEST_MK)
+#TEST_MK = $(MFEM_TEST_MK)
+TEST_MK = $(MFEM_DIR)/config/test.mk
 
 # Use the compiler used by MFEM. Get the compiler and the options for compiling
 # and linking from MFEM's config.mk. (Skip this if the target does not require
