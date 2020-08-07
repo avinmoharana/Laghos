@@ -1,5 +1,3 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
 // reserved. See files LICENSE and NOTICE for details.
 //
 // This file is part of CEED, a collection of benchmarks, miniapps, software
@@ -136,11 +134,47 @@ void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3
     std::vector<apf::Vector3> &xyz, std::vector<apf::Vector3> &fv,
     std::vector<int> &clas);
 
+void writeEigenGF(ParGridFunction &grad_v,
+    const char *name, int count, int res);
+
+void getShockFront(ParMesh *pmesh,
+    const ParGridFunction &v_mag,
+    const ParGridFunction &x_gf,
+    double values[5]);
+
+double getShockRadius(ParMesh *pmesh,
+    const ParGridFunction &v_mag,
+    const ParGridFunction &x_gf);
+
+void writeMeshAndGF(ParGridFunction vel,
+    ParMesh *pmesh, const char* name, int ord);
+
 void computeSizefield(const ParFiniteElementSpace &H1FESpace,
     const ParGridFunction &grad_v,
     ParMesh *pmesh,
     vector<Vector> &mval,
     vector<Vector> &mvec);
+
+void computeSizefield1(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    apf::Mesh2 *pumi_mesh,
+    apf::Field* sizes,
+    apf::Field* frames);
+
+void computeSizefield2(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    const char *name, int count, int res);
+
+void computeSizefield3(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    vector<Vector> &mval,
+    vector<Vector> &mvec);
+
+void metricIntersection(ParMesh* pmesh,
+    const DenseMatrix &Mt, DenseMatrix &Mt_t);
 /* void tryEdgeReshape(apf::Mesh3* pumi_mesh); */
 
 void writePumiMesh(apf::Mesh2* mesh, const char* name, int count);
@@ -174,7 +208,19 @@ int main(int argc, char *argv[])
   const char *simx_model_file = "/users/mohara/Desktop/cubeC/cubeC_nat.smd";
 
   int geom_order = 2;
-  int num_adapt = 400;
+  int num_adapt = 10000;
+
+  /* //writing to file: shock front tracking 
+  ofstream fileVel;
+  fileVel.open("shockPosition.txt");
+  double values[5];
+  fileVel<<
+    "time       "<<"     "<<
+    "vel_max "<<"     "<<
+    "rad_loc  "<<"     "<<
+    "avg_vel_max"<<"    "<<
+    "avg_rad_loc"<<std::endl;
+  */
 
   // Laghos command-line options
   int rs_levels = 0;
@@ -197,7 +243,7 @@ int main(int argc, char *argv[])
   double ref_threshold = 2e-4;
   double deref_threshold = 0.75;
   const int nc_limit = 0;
-  const double blast_energy = 0.25; // 0.25 default
+  const double blast_energy = 0.25;
   const double blast_position[] = {0.0, 0.0, 0.0};
   const double blast_amr_size = 1e-10;
   double adapt_ratio = 0.06;
@@ -357,6 +403,10 @@ int main(int argc, char *argv[])
   H1_FECollection H1FEC(order_v, dim);
   ParFiniteElementSpace L2FESpace(pmesh, &L2FEC);
   ParFiniteElementSpace H1FESpace(pmesh, &H1FEC, pmesh->Dimension());
+
+  L2_FECollection L2FEC_ord2(order_v, dim, BasisType::Positive);
+  ParFiniteElementSpace L2FESpace_ord2(pmesh, &L2FEC_ord2,
+      pmesh->Dimension(),Ordering::byVDIM);
   // Boundary conditions: all tests use v.n = 0 on the boundary, and we assume
   // that the boundaries are straight.
   Array<int> ess_tdofs;
@@ -419,6 +469,8 @@ int main(int argc, char *argv[])
   ParGridFunction d_gf(&H1FESpace);
   d_gf = 0.;
 
+  ParGridFunction eigen_gf(&L2FESpace_ord2);
+
   // Initialize x_gf using the starting mesh coordinates. This also links the
   // mesh positions to the values in x_gf.
   pmesh->SetNodalGridFunction(&x_gf);
@@ -426,6 +478,7 @@ int main(int argc, char *argv[])
   // Initialize the velocity.
   VectorFunctionCoefficient v_coeff(pmesh->Dimension(), v0);
   v_gf.ProjectCoefficient(v_coeff);
+  eigen_gf.ProjectCoefficient(v_coeff);
 
   // Initialize density and specific internal energy values. We interpolate in
   // a non-positive basis to get the correct values at the dofs.  Then we do an
@@ -542,12 +595,20 @@ int main(int argc, char *argv[])
   int steps = 0;
   BlockVector S_old(S);
   ParGridFunction dgf_old(d_gf);
+/*
+  Mesh* meshMFEM = dynamic_cast<ParMesh*>(pmesh);
+
+  ofstream mesh_offs("initial_mesh_ord2.mesh");
+  meshMFEM->Print(mesh_offs);
+*/
+  //writeMeshAndGF(v_gf, pmesh, "initial", geom_order);
 
   int meshwritten = 0; // Testing
 
   ParGridFunction x0_gf(&H1FESpace);
   x0_gf = x_gf;
   double minJdet;
+  int counter = 0;
 
   for (int ti = 1; !last_step; ti++)
   {
@@ -592,9 +653,14 @@ int main(int argc, char *argv[])
     }
     else if (dt_est > 1.25 * dt) { dt *= 1.02; }
 
+
     // Make sure that the mesh corresponds to the new solution state.
     pmesh->NewNodes(x_gf, false);
     x0_gf.Update();
+    if (steps == 0) {
+      writeMeshAndGF(v_gf,pmesh,"initial",geom_order);
+
+    }
 
     if (last_step || (ti % vis_steps) == 0)
     {
@@ -688,50 +754,68 @@ int main(int argc, char *argv[])
     ofstream mesh_ofs1("meshBeforeAdapt.mesh");
     pmesh->Print(mesh_ofs1);
 
-    minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
-    std::cout<<" min J det in the mesh "<<minJdet<<std::endl;
+    // velocity magnitude GF
+    ParFiniteElementSpace *fespace_scalar = new ParFiniteElementSpace(
+	pmesh, &H1FEC, 1, Ordering::byVDIM);
+    ParGridFunction v_mag(fespace_scalar);
 
-    //Vector &error_est = oper.GetZoneMaxVisc();
-    //bool adapt_mesh = false;
+    Array<int> dofs(3);
 
-    //for (int i = 0; i < pmesh->GetNE(); i++) {
-    //  if (error_est(i) > ref_threshold )
-    //  	adapt_mesh = true;
-    //}
-    //if (last_step) {
-    if (steps % num_adapt == 0 && steps != 0) {
-    //if (adapt_mesh) {
-    //if (minJdet < 5*10e-3) {
+    for (int i = 0; i < v_mag.Size(); i++) {
+      dofs.SetSize(1);
+      dofs[0] = i;
+      H1FESpace.DofsToVDofs(dofs);
+      double v_x = v_gf(dofs[0]);
+      double v_y = v_gf(dofs[1]);
+      double v_z = v_gf(dofs[2]);
+      (v_mag)(i) = sqrt(v_x*v_x + v_y*v_y + v_z*v_z);
 
+    }
+
+    VectorCoefficient* grad_v_coeff = new GradientGridFunctionCoefficient(&v_mag);
+    ParGridFunction grad_v(&H1FESpace);
+    grad_v.ProjectCoefficient(*grad_v_coeff);
+
+    double r_avg = getShockRadius(pmesh, v_mag, x_gf);
+
+      /*
+      int tstep = t/0.05;
+
+      if (tstep == counter) {
+      	values[0] = t;
+	getShockFront(pmesh, v_mag, x_gf, values);
+	//fprintf(fileVel,
+	//    "%.6f \t %.6f \t %.6f \t %.6f \t %.6f\n",
+	//    values[0], values[1], values[2], values[3], values[4]);
+
+
+	fileVel<<
+	  values[0]<<"      "<<
+	  values[1]<<"      "<<
+	  values[2]<<"      "<<
+	  values[3]<<"      "<<
+	  values[4]<<std::endl;
+
+	counter++;
       changePumiMesh(x_gf, pmesh, pumi_mesh, geom_order);
-      pumi_mesh->verify();
-      // Hessian of velocity computation
-      ParFiniteElementSpace *fespace_scalar = new ParFiniteElementSpace(pmesh, &H1FEC, 1, Ordering::byVDIM);
-      ParGridFunction v_mag(fespace_scalar);
-
-      Array<int> dofs(3);
-
-      for (int i = 0; i < v_mag.Size(); i++) {
-	dofs.SetSize(1);
-	dofs[0] = i;
-	H1FESpace.DofsToVDofs(dofs);
-	double v_x = v_gf(dofs[0]);
-	double v_y = v_gf(dofs[1]);
-	double v_z = v_gf(dofs[2]);
-	(v_mag)(i) = sqrt(v_x*v_x + v_y*v_y + v_z*v_z);
+      writePumiMesh(pumi_mesh, "track_", steps);
+      writeMfemMesh(H1FESpace, L2FESpace, S, rho_gf,
+	  "track", steps, order_v);
       }
+      */
 
-      VectorCoefficient* grad_v_coeff = new GradientGridFunctionCoefficient(&v_mag);
-      ParGridFunction grad_v(&H1FESpace);
-      grad_v.ProjectCoefficient(*grad_v_coeff);
+    if (steps % num_adapt == 0 && steps != 0) {
 
+      writeEigenGF(grad_v, "eigen", steps, order_v);
       // Sizefield computation
       vector<Vector> mval, mvec;
+
       computeSizefield(H1FESpace, grad_v, pmesh, mval, mvec);
-
-      delete grad_v_coeff;
-
+      //computeSizefield3(H1FESpace, grad_v, pmesh, mval, mvec);
+      changePumiMesh(x_gf, pmesh, pumi_mesh, geom_order);
+      pumi_mesh->verify();
       writePumiMesh(pumi_mesh, "beforeAdapt", steps);
+
 
       writeMfemMesh(H1FESpace, L2FESpace, S, rho_gf,
 	  "before_adapt", steps, order_v);
@@ -788,8 +872,8 @@ int main(int argc, char *argv[])
       crv::convertInterpolatingFieldToBezier(pumi_mesh, initialCoords);
 
       cout<<pumi_mesh->countFields()<<" Fields on pumi defined"<<endl;
-      // define sizes and frames for mesh adapt
 
+      // define sizes and frames for mesh adapt
       apf::Field* sizes = apf::createField(pumi_mesh, "sizes", apf::VECTOR,
 	  apf::getLagrange(1));
       apf::Field* frames = apf::createField(pumi_mesh, "frames", apf::MATRIX,
@@ -817,14 +901,15 @@ int main(int argc, char *argv[])
       pumi_mesh->end(it);
 
       // energy values before adapt
-      it = pumi_mesh->begin(3);
+      apf::MeshEntity* ent1;
+      apf::MeshIterator* it1 = pumi_mesh->begin(3);
       double sum = 0.;
-      while ((ent = pumi_mesh->iterate(it))) {
-	double val = apf::getScalar(e_field, ent, 0);
-	sum += val*apf::measure(pumi_mesh, ent);
+      while ((ent1 = pumi_mesh->iterate(it1))) {
+	double val = apf::getScalar(e_field, ent1, 0);
+	sum += val*apf::measure(pumi_mesh, ent1);
 	//sum += val;
       }
-      pumi_mesh->end(it);
+      pumi_mesh->end(it1);
       std::cout<<" total energy values before adapt"<< sum<<std::endl;
 
       std::cout<<"sizes and frames set"<<std::endl;
@@ -835,15 +920,6 @@ int main(int argc, char *argv[])
 
       // 19. Perform MeshAdapt
       // setup adapt for sizes and frames
-/*
-      apf::Vector3 xiMid = apf::Vector3(0.5, 0, 0);
-      std::vector<apf::Vector3> xyzV, fvalue;
-      std::vector<int> clas;
-
-      getXYXandFieldValuesAtXi(pumi_mesh, Coords_ref, xiMid, xyzV, fvalue, clas);
-      for (size_t ij = 0; ij < xyzV.size(); ij++)
-	std::cout<< xyzV[ij]-fvalue[ij]<<"  "<<clas[ij]<<std::endl;
-*/
       ma::Input* erinput = ma::configure(pumi_mesh, sizes, frames, 0, true);
       //ma::Input* erinput = ma::configureIdentity(pumi_mesh, 0, 0);
       //ma::Input* erinput = ma::configureUniformRefine(pumi_mesh, 1, 0);
@@ -851,7 +927,7 @@ int main(int argc, char *argv[])
       erinput->shouldTransferParametric = false;
       erinput->goodQuality = 0.027;
       erinput->shouldFixShape = true;
-      erinput->maximumIterations = 1;
+      erinput->maximumIterations = 3;
       erinput->shouldCoarsen = true;
       std::cout<<"adapt start"<<std::endl;
 
@@ -866,17 +942,6 @@ int main(int argc, char *argv[])
       apf::FieldShape *fsTest = apf::getShape(Coords);
       std::string name = fsTest->getName();
       std::cout<<" name of coord field "<< name <<std::endl;
-
-      snapCoordinateField(pumi_mesh, Coords_ref);
-
-      // compare coordinate field values after adapt
-      apf::Vector3 xiMid = apf::Vector3(0.5, 0, 0);
-      std::vector<apf::Vector3> xyzV, fvalue;
-      std::vector<int> clas;
-
-      getXYXandFieldValuesAtXi(pumi_mesh, Coords_ref, xiMid, xyzV, fvalue, clas);
-      for (size_t ij = 0; ij < xyzV.size(); ij++)
-	std::cout<< xyzV[ij]-fvalue[ij]<<"  "<<clas[ij]<<std::endl;
 
       safe_mkdir("size_field_after");
       sampleSize[0] = 10;
@@ -986,9 +1051,9 @@ int main(int argc, char *argv[])
 
       std::cout<<"Reached HERE-------------07"<<std::endl;
 
-      minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
+      //minJdet = getMinJacobian(pmesh, H1FESpace, L2FESpace);
 
-      std::cout<<" min J det in the mesh "<<minJdet<<std::endl;
+      //std::cout<<" min J det in the mesh "<<minJdet<<std::endl;
 
       //Destroy fields and mesh
       delete Adapmesh;
@@ -1010,6 +1075,7 @@ int main(int argc, char *argv[])
       block0.Destroy();
       block1.Destroy();
       block2.Destroy();
+      delete grad_v_coeff;
 
       writePumiMesh(pumi_mesh, "afterAdapt", steps);
       writeMfemMesh(H1FESpace, L2FESpace, S, rho_gf,
@@ -1092,6 +1158,35 @@ void writeMfemMesh(const ParFiniteElementSpace &H1FESpace,
   rho.SaveVTK(mesh_vtk_ofs, "density_order1", 1);
 }
 
+void writeEigenHonMesh(ParGridFunction eigen_gf,
+    const char* name, int count, int res)
+{
+  ParFiniteElementSpace* fesl2 = eigen_gf.ParFESpace();
+  ParMesh* pmesh = fesl2->GetParMesh();
+
+  std::stringstream ss;
+  ss << name << count<<".vtk";
+
+  ofstream mesh_vtk_ofs(ss.str().c_str());
+  pmesh->PrintVTK(mesh_vtk_ofs, res);
+  eigen_gf.SaveVTK(mesh_vtk_ofs, "eigenValH", res);
+}
+
+void writeMeshAndGF(ParGridFunction vel,
+    ParMesh *pmesh, const char* name, int ord)
+{
+  std::stringstream ss1;
+  ss1 << "velocity_Ord"<<ord<<name<<".gf";
+  ofstream mesh_ofs1(ss1.str().c_str());
+  vel.Save(mesh_ofs1);
+
+  std::stringstream ss2;
+  ss2 << "mesh_Ord"<<ord<<name<<".mesh";
+  ofstream mesh_ofs2(ss2.str().c_str());
+  pmesh->Print(mesh_ofs2);
+
+}
+
 double getMinJacobian(ParMesh* pmesh,
     ParFiniteElementSpace &h1,
     ParFiniteElementSpace &l2)
@@ -1150,6 +1245,205 @@ void snapCoordinateField(apf::Mesh2* mesh, apf::Field* f)
   }
 }
 
+void writeEigenGF(ParGridFunction &grad_v,
+    const char *name, int count, int res)
+{
+  ParFiniteElementSpace* fesh1 = grad_v.ParFESpace();
+  ParMesh* pmesh = fesh1->GetParMesh();
+  int dim = pmesh->Dimension();
+  L2_FECollection L2FEC_ord2(res, dim, BasisType::Positive);
+  ParFiniteElementSpace fesl2(pmesh, &L2FEC_ord2,
+      pmesh->Dimension());
+  ParGridFunction eigen_gf(&fesl2);
+  ParGridFunction eigen_dir_gf(&fesl2);
+
+  for (int i = 0; i < pmesh->GetNE(); i++) {
+    const FiniteElement* fe1 = fesh1->GetFE(i);
+    const IntegrationRule &ir2 = fe1->GetNodes();
+    const FiniteElement* fe2 = fesl2.GetFE(i);
+    const IntegrationRule &ir1 = fe2->GetNodes();
+
+    ElementTransformation *elemTrans = pmesh->GetElementTransformation(i);
+    Element *elem = pmesh->GetElement(i);
+    DenseMatrix H(dim);
+    DenseMatrix H1(dim);
+    Vector eigenVal(dim), eigenVec(dim*dim);
+    Array<int> vdofs;
+    fesl2.GetElementVDofs(i, vdofs);
+
+    for(int j = 0; j < ir1.Size(); j++) {
+      H = (0.);
+      H1 = (0.);
+      IntegrationPoint ip = ir1.IntPoint(j);
+      elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H);
+      grad_v.GetVectorGradient(*elemTrans, H1);
+      const DenseMatrix &J = elemTrans->Jacobian();
+      Mult(H1, J, H);
+
+      H.Symmetrize();
+      H.CalcEigenvalues(eigenVal, eigenVec);
+
+      for(int k = 0; k < dim; k++) {
+      	int dofIndex = j + k*(ir1.Size());
+      	(eigen_gf.GetData())[vdofs[dofIndex]] = eigenVal(k);
+      	(eigen_dir_gf.GetData())[vdofs[dofIndex]] = eigenVec(6+k);
+      }
+    }
+  }
+
+  std::stringstream ss;
+  ss << name << count<<".vtk";
+
+  ofstream mesh_vtk_ofs(ss.str().c_str());
+  pmesh->PrintVTK(mesh_vtk_ofs, 1);
+  grad_v.SaveVTK(mesh_vtk_ofs, "grad_v", 1);
+  eigen_gf.SaveVTK(mesh_vtk_ofs, "eigenValH", 1);
+  eigen_dir_gf.SaveVTK(mesh_vtk_ofs, "dominant_eigen_dir", 1);
+}
+
+double getShockRadius(ParMesh *pmesh,
+    const ParGridFunction &v_mag,
+    const ParGridFunction &x_gf)
+{
+  int order = 4;
+  int dim = pmesh->Dimension();
+  L2_FECollection L2FEC(order, dim, BasisType::Positive);
+  ParFiniteElementSpace fesl2(pmesh, &L2FEC, 1);
+  ParGridFunction v_max(&fesl2);
+  ParGridFunction radius(&fesl2);
+  double maxVal = 0.;
+  double maxRad = 0.;
+  for (int i = 0; i < pmesh->GetNE(); i++) {
+    const FiniteElement* fe2 = fesl2.GetFE(i);
+    const IntegrationRule &ir = fe2->GetNodes();
+
+    ElementTransformation *elemTrans = pmesh->GetElementTransformation(i);
+    Element *elem = pmesh->GetElement(i);
+
+    Array<int> dofs;
+    fesl2.GetElementDofs(i, dofs);
+
+    for(int j = 0; j < ir.Size(); j++) {
+      IntegrationPoint ip = ir.IntPoint(j);
+      elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H);
+
+      (v_max.GetData())[dofs[j]] = v_mag.GetValue(i, ip, 1);
+      Vector v;
+      x_gf.GetVectorValue(i, ip, v);
+      double rad = sqrt(v(0)*v(0)+v(1)*v(1)+v(2)*v(2));
+      (radius.GetData())[dofs[j]] = rad;
+
+      double val = v_mag.GetValue(i, ip, 1);
+
+      if (val > maxVal) {
+      	maxVal = val;
+      	maxRad = rad;
+      }
+    }
+  }
+
+  //printf("max val recorded %f, at radius %f \n", maxVal, maxRad);
+
+  std::vector<double> velMax;
+  std::vector<double> radMax;
+
+  for( int i = 0; i < v_max.Size(); i++) {
+    if (v_max(i) > 0.95*maxVal) {
+      velMax.push_back(v_max(i));
+      radMax.push_back(radius(i));
+      //printf("range of vel %f with radius %f \n", v_max[i], radius[i]);
+    }
+  }
+
+  double avgV = 0.;
+  double avgR = 0.;
+
+  for (int i = 0; i<velMax.size(); i++) {
+    avgV += velMax[i];
+    avgR += radMax[i];
+  }
+  avgV = avgV/velMax.size();
+  avgR = avgR/velMax.size();
+  //printf("avg val recorded %f, at radius %f \n", avgV, avgR);
+  return avgR;
+
+}
+void getShockFront(ParMesh *pmesh,
+    const ParGridFunction &v_mag,
+    const ParGridFunction &x_gf,
+    double values[5])
+{
+  int order = 4;
+  int dim = pmesh->Dimension();
+  L2_FECollection L2FEC(order, dim, BasisType::Positive);
+  ParFiniteElementSpace fesl2(pmesh, &L2FEC, 1);
+  ParGridFunction v_max(&fesl2);
+  ParGridFunction radius(&fesl2);
+  double maxVal = 0.;
+  double maxRad = 0.;
+  for (int i = 0; i < pmesh->GetNE(); i++) {
+    const FiniteElement* fe2 = fesl2.GetFE(i);
+    const IntegrationRule &ir = fe2->GetNodes();
+
+    ElementTransformation *elemTrans = pmesh->GetElementTransformation(i);
+    Element *elem = pmesh->GetElement(i);
+
+    Array<int> dofs;
+    fesl2.GetElementDofs(i, dofs);
+
+    for(int j = 0; j < ir.Size(); j++) {
+      IntegrationPoint ip = ir.IntPoint(j);
+      elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H);
+
+      (v_max.GetData())[dofs[j]] = v_mag.GetValue(i, ip, 1);
+      Vector v;
+      x_gf.GetVectorValue(i, ip, v);
+      double rad = sqrt(v(0)*v(0)+v(1)*v(1)+v(2)*v(2));
+      (radius.GetData())[dofs[j]] = rad;
+
+      double val = v_mag.GetValue(i, ip, 1);
+
+      if (val > maxVal) {
+      	maxVal = val;
+      	maxRad = rad;
+      }
+    }
+  }
+
+  //printf("max val recorded %f, at radius %f \n", maxVal, maxRad);
+
+  std::vector<double> velMax;
+  std::vector<double> radMax;
+
+  for( int i = 0; i < v_max.Size(); i++) {
+    if (v_max(i) > 0.95*maxVal) {
+      velMax.push_back(v_max(i));
+      radMax.push_back(radius(i));
+      //printf("range of vel %f with radius %f \n", v_max[i], radius[i]);
+    }
+  }
+
+  double avgV = 0.;
+  double avgR = 0.;
+
+  for (int i = 0; i<velMax.size(); i++) {
+    avgV += velMax[i];
+    avgR += radMax[i];
+  }
+  avgV = avgV/velMax.size();
+  avgR = avgR/velMax.size();
+  //printf("avg val recorded %f, at radius %f \n", avgV, avgR);
+
+  values[1] = maxVal;
+  values[2] = maxRad;
+  values[3] = avgV;
+  values[4] = avgR;
+
+}
+
 void computeSizefield(const ParFiniteElementSpace &H1FESpace,
     const ParGridFunction &grad_v,
     ParMesh *pmesh,
@@ -1170,6 +1464,8 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
 
     DenseMatrix H(dim);
     H=(0.);
+    DenseMatrix H1(dim);
+    H1=(0.);
     Vector eigenVal(dim), eigenVec(dim*dim);
     DenseMatrix R(dim);
     R=(0.);
@@ -1183,7 +1479,8 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
       const FiniteElement *fe = H1FESpace.GetFE(el[j]);
       IntegrationRule intRul = fe->GetNodes();
 
-      ElementTransformation *elemTrans = pmesh->GetElementTransformation(el[j]);
+      ElementTransformation *elemTrans =
+      	pmesh->GetElementTransformation(el[j]);
       Element *elem = pmesh->GetElement(el[j]);
       int *vertArray = elem->GetVertices();
 
@@ -1198,6 +1495,9 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
 
       IntegrationPoint ip = intRul.IntPoint(ipIndex);
       elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H1);
+      //const DenseMatrix &J = elemTrans->Jacobian();
+      //Mult(H1, J, H);
       grad_v.GetVectorGradient(*elemTrans, H);
 
       H.Symmetrize();
@@ -1210,6 +1510,7 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
 
       hmax = 0.5;//0.5 initially used
       hmin = hmax/25600;// initially used;
+      //hmin = hmax/8;
 
       for (int k = 0; k < 3; k++) {
 	ev_m(k) = std::min(std::max(abs(eigenVal(k))/err, 1./(hmax*hmax)),
@@ -1218,6 +1519,7 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
       }
 
       MultADAt(R, ev_m_log, Mt);    // construct log(Metric) matrix for each element
+      Mt.Transpose();
 
       for (int k = 0; k < Mt.Width(); k++) {
 	for (int kk = 0; kk < Mt.Height(); kk++) {
@@ -1236,6 +1538,407 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
     mvec.push_back(evec_s);
 
   }
+}
+
+void computeSizefield1(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    apf::Mesh2 *pumi_mesh,
+    apf::Field* sizes,
+    apf::Field* frames)
+{
+  ParPumiMesh* ppPmesh = dynamic_cast<ParPumiMesh*>(pmesh);
+  apf::Numbering* tet_num = apf::createNumbering(pumi_mesh, "num_tet", apf::getConstant(3), 1);
+  apf::MeshEntity* e;
+  apf::MeshIterator* it1;
+  it1 = pumi_mesh->begin(3);
+  int count = 0;
+  while( (e = pumi_mesh->iterate(it1)) ) {
+    apf::number(tet_num, e, 0, 0, count);
+    count++;
+  }
+  pumi_mesh->end(it1);
+  int dim = pmesh->Dimension();
+  apf::FieldShape *fs = apf::getShape(sizes);
+  int order = fs->getOrder();
+
+  DenseMatrix Mt(dim), Mt_t(dim);
+  Vector ev_s(dim), evec_s(dim*dim);
+
+  for (int d = 0; d <= dim; d++) {
+    if (!fs->hasNodesIn(d)) continue;
+    if ( d > 1) continue;
+    if ( d == 3 ) {
+      printf(" Order >= 4 sizes field not implemented \n");
+      continue;
+    }
+
+    int ne = fs->countNodesOn(apf::Mesh::simplexTypes[d]);
+
+    apf::MeshEntity* ent;
+    apf::MeshIterator* it = pumi_mesh->begin(d);
+
+    while( (ent = pumi_mesh->iterate(it)) ) {
+      apf::Adjacent adjR;
+      pumi_mesh->getAdjacent(ent, 3, adjR);
+      size_t nElem = adjR.getSize();
+      Mt_t=(0.);
+      DenseMatrix H(dim);
+      H=(0.);
+      Vector eigenVal(dim), eigenVec(dim*dim);
+      DenseMatrix R(dim);
+      R=(0.);
+      Vector eLength(6);
+      double hmin= 0., hmax = 0.;
+      double err = 0.1;//0.1 used initially
+      Vector ev_m(dim), ev_m_log(dim);
+
+      int type = pumi_mesh->getType(ent);
+
+      for (size_t i = 0; i < nElem; i++) {
+      	Mt = (0.);
+	apf::MeshEntity* a[12];
+	int na = pumi_mesh->getDownward(adjR[i], d, a);
+	int ind = apf::findIn(a, na, ent);
+	int elemNum = apf::getNumber(tet_num, adjR[i], 0, 0);
+	ElementTransformation *elemTrans =
+	  pmesh->GetElementTransformation(elemNum);
+	Element *elem = pmesh->GetElement(elemNum);
+
+	// TODO catch the same node point from all the adjacent elements
+	// Currently order 2 sizes implemented
+	apf::NewArray<apf::Vector3> pumi_nodes;
+	apf::getElementNodeXis(fs, pumi_mesh, adjR[i], pumi_nodes);
+	int indexNo;
+
+	if (d == 1) indexNo = 4+ind*(order-1);
+	else indexNo = ind;
+
+	IntegrationRule ir = ppPmesh->ParentXisPUMItoMFEM(pumi_mesh,
+	    adjR[i], elemNum, pumi_nodes, true);
+
+
+	IntegrationPoint ip = ir.IntPoint(ind);
+	elemTrans->SetIntPoint(&ip);
+	grad_v.GetVectorGradient(*elemTrans, H);
+
+	H.Symmetrize();
+	H.CalcEigenvalues(eigenVal, eigenVec);
+
+	for (int k = 0; k < dim; k++) { // column k
+	  for (int kk = 0; kk < dim; kk++) {
+	    R(kk, k) = eigenVec(3*k + kk);
+	  }
+	}
+
+	hmax = 0.5; // initially used
+	hmin = hmax/25600;// initially used;
+	//hmin = hmax/16;// initially used;
+
+	for (int k = 0; k < 3; k++) {
+	  ev_m(k) = std::min(std::max(abs(eigenVal(k))/err, 1./(hmax*hmax)),
+	      1./(hmin*hmin));
+	  ev_m_log(k) = log(ev_m(k));
+	}
+
+	MultADAt(R, ev_m_log, Mt);    // construct log(Metric) matrix for each element
+	//Mt.Transpose();
+
+	for (int k = 0; k < Mt.Width(); k++) {
+	  for (int kk = 0; kk < Mt.Height(); kk++) {
+	    Mt_t(k, kk) = Mt_t(k, kk) + Mt(k, kk)/nElem;
+	  }
+	}
+
+      }
+      Mt_t.Symmetrize();
+      Mt_t.CalcEigenvalues(ev_s, evec_s);
+
+      for (int k = 0; k < ev_s.Size(); k++)
+	ev_s(k) = 1./sqrt(exp(ev_s(k)));	// size computation
+
+      ma::Vector s;
+      ma::Matrix r;
+
+      for (int k = 0; k < dim; k++) {
+	s[k] = ev_s(k);
+	for (int kk = 0; kk < dim; kk++) {
+	  r[k][kk] = evec_s(3*k + kk);
+	}
+      }
+
+      // node number 0 since upto order 2
+      apf::setMatrix(frames, ent, 0, apf::transpose(r));
+      apf::setVector(sizes, ent, 0, s);
+    }
+    pumi_mesh->end(it);
+  }
+  apf::destroyNumbering(tet_num);
+  //apf::destroyField(temp_coord);
+}
+
+void computeSizefield2(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    const char *name, int count, int res)
+{
+  int dim = pmesh->Dimension();
+  ParFiniteElementSpace* h1feso1 = new ParFiniteElementSpace(pmesh,
+      new H1_FECollection(1, dim), dim);
+  ParGridFunction eigen_gf_cumm(h1feso1);
+  int nv = pmesh->GetNV();
+  Table *vert_elem = pmesh->GetVertexToElementTable();
+
+  DenseMatrix Mt(dim), Mt_t(dim);
+  Vector ev_s(dim), evec_s(dim*dim);
+
+  for (int i = 0; i < nv; i++) {
+    Mt_t=(0.);
+    const int *el = vert_elem->GetRow(i);
+    int rs = vert_elem->RowSize(i);
+
+    DenseMatrix H(dim);
+    H=(0.);
+    DenseMatrix H1(dim);
+    H1=(0.);
+    Vector eigenVal(dim), eigenVec(dim*dim);
+    DenseMatrix R(dim);
+    R=(0.);
+    Vector eLength(6);
+    double hmin= 0., hmax = 0.;
+    double err = 0.1;//0.1 used initially
+    Vector ev_m(dim), ev_m_log(dim);
+
+    for (size_t j = 0; j < rs; j++) {
+      Mt=(0.);
+      const FiniteElement *fe = H1FESpace.GetFE(el[j]);
+      IntegrationRule intRul = fe->GetNodes();
+
+      ElementTransformation *elemTrans =
+      	pmesh->GetElementTransformation(el[j]);
+      Element *elem = pmesh->GetElement(el[j]);
+      int *vertArray = elem->GetVertices();
+
+      int ipIndex;
+
+      for(int k = 0; k < 4; k++) {
+	if (vertArray[k] == i) {
+	  ipIndex = k;
+	  break;
+	}
+      }
+
+      IntegrationPoint ip = intRul.IntPoint(ipIndex);
+      elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H1);
+      //const DenseMatrix &J = elemTrans->Jacobian();
+      //Mult(H1, J, H);
+      grad_v.GetVectorGradient(*elemTrans, H);
+
+      H.Symmetrize();
+      H.CalcEigenvalues(eigenVal, eigenVec);
+      for (int k = 0; k < dim; k++) { // column k
+	for (int kk = 0; kk < dim; kk++) {
+	  R(kk, k) = eigenVec(3*k + kk);
+	}
+      }
+
+      hmax = 0.5;//0.5 initially used
+      hmin = hmax/25600;// initially used;
+      //hmin = hmax/8;
+
+      for (int k = 0; k < 3; k++) {
+	ev_m(k) = std::min(std::max(abs(eigenVal(k))/err, 1./(hmax*hmax)),
+	    1./(hmin*hmin));
+	ev_m_log(k) = log(ev_m(k));
+      }
+
+      MultADAt(R, ev_m_log, Mt);    // construct log(Metric) matrix for each element
+      Mt.Transpose();
+
+      for (int k = 0; k < Mt.Width(); k++) {
+	for (int kk = 0; kk < Mt.Height(); kk++) {
+	  Mt_t(k, kk) = Mt_t(k, kk) + Mt(k, kk)/rs;
+	}
+      }
+
+    }
+    Mt_t.Symmetrize();
+    Mt_t.CalcEigenvalues(ev_s, evec_s);
+
+    for (int k = 0; k < ev_s.Size(); k++)
+      ev_s(k) = 1./sqrt(exp(ev_s(k)));	// size computation
+
+    Array<int> dofs(3);
+
+    dofs.SetSize(1);
+    dofs[0] = i;
+    h1feso1->DofsToVDofs(dofs);
+    for (int k = 0; k < dim; k++)
+      (eigen_gf_cumm)(dofs[k]) = ev_s(k);
+
+  }
+
+  std::stringstream ss;
+  ss << name << count<<".vtk";
+
+  ofstream mesh_vtk_ofs(ss.str().c_str());
+  pmesh->PrintVTK(mesh_vtk_ofs, 1);
+  eigen_gf_cumm.SaveVTK(mesh_vtk_ofs, "edge_length", 1);
+}
+
+void computeSizefield3(const ParFiniteElementSpace &H1FESpace,
+    const ParGridFunction &grad_v,
+    ParMesh *pmesh,
+    vector<Vector> &mval,
+    vector<Vector> &mvec)
+{
+  int dim = pmesh->Dimension();
+  int nv = pmesh->GetNV();
+  Table *vert_elem = pmesh->GetVertexToElementTable();
+
+  DenseMatrix Mt(dim), Mt_t(dim);
+  Vector ev_s(dim), evec_s(dim*dim);
+
+  for (int i = 0; i < nv; i++) {
+    Mt_t=(0.);
+    const int *el = vert_elem->GetRow(i);
+    int rs = vert_elem->RowSize(i);
+
+    DenseMatrix H(dim);
+    H=(0.);
+    DenseMatrix H1(dim);
+    H1=(0.);
+    Vector eigenVal(dim), eigenVec(dim*dim);
+    DenseMatrix R(dim);
+    R=(0.);
+    Vector eLength(6);
+    double hmin= 0., hmax = 0.;
+    double err = 0.1;//0.1 used initially
+    Vector ev_m(dim), ev_m_log(dim);
+
+    for (size_t j = 0; j < rs; j++) {
+      Mt=(0.);
+      const FiniteElement *fe = H1FESpace.GetFE(el[j]);
+      IntegrationRule intRul = fe->GetNodes();
+
+      ElementTransformation *elemTrans =
+      	pmesh->GetElementTransformation(el[j]);
+      Element *elem = pmesh->GetElement(el[j]);
+      int *vertArray = elem->GetVertices();
+
+      int ipIndex;
+
+      for(int k = 0; k < 4; k++) {
+	if (vertArray[k] == i) {
+	  ipIndex = k;
+	  break;
+	}
+      }
+
+      IntegrationPoint ip = intRul.IntPoint(ipIndex);
+      elemTrans->SetIntPoint(&ip);
+      //grad_v.GetVectorGradient(*elemTrans, H1);
+      //const DenseMatrix &J = elemTrans->Jacobian();
+      //Mult(H1, J, H);
+      grad_v.GetVectorGradient(*elemTrans, H);
+
+      H.Symmetrize();
+      H.CalcEigenvalues(eigenVal, eigenVec);
+      for (int k = 0; k < dim; k++) { // column k
+	for (int kk = 0; kk < dim; kk++) {
+	  R(kk, k) = eigenVec(3*k + kk);
+	}
+      }
+
+      hmax = 0.5;//0.5 initially used
+      hmin = hmax/25600;// initially used;
+      //hmin = hmax/8;
+
+      for (int k = 0; k < 3; k++) {
+	ev_m(k) = std::min(std::max(abs(eigenVal(k))/err, 1./(hmax*hmax)),
+	    1./(hmin*hmin));
+      }
+
+      //DenseMatrix R_trans = R;
+      //R_trans.Transpose(R_trans);
+      //MultADAt(R_trans, ev_m, Mt);    // construct log(Metric) matrix for each element
+      MultADAt(R, ev_m, Mt);    // construct log(Metric) matrix for each element
+
+      if (j==0) {
+      	Mt_t = Mt;
+      	continue;
+      }
+
+      metricIntersection(pmesh, Mt, Mt_t);
+
+    }
+
+    Mt_t.Symmetrize();
+    Mt_t.CalcEigenvalues(ev_s, evec_s);
+
+    for (int k = 0; k < ev_s.Size(); k++)
+      ev_s(k) = 1./sqrt((ev_s(k)));	// size computation
+
+    mval.push_back(ev_s);
+    mvec.push_back(evec_s);
+
+  }
+}
+
+void metricIntersection(ParMesh* pmesh,
+    const DenseMatrix &Mt, DenseMatrix &Mt_t)
+{
+  // considering metric field M1 = Mt and M2 = Mt_t
+  // return M2 <- M1 intersection M2
+  int dim = pmesh->Dimension();
+  DenseMatrix N(dim);
+  DenseMatrix Mt_inv = Mt;
+  Mt_inv.Invert();
+
+  Mult(Mt_inv, Mt_t, N);
+
+  Vector eigenVal(dim), eigenVec(dim*dim);
+  DenseMatrix R(dim);
+
+  N.Symmetrize();
+  N.CalcEigenvalues(eigenVal, eigenVec);
+
+  for (int k = 0; k < dim; k++) { // column k: kth eigen direction
+    for (int kk = 0; kk < dim; kk++) {
+      R(kk, k) = eigenVec(3*k + kk);
+    }
+  }
+
+  DenseMatrix R_inv = R;
+  R_inv.Invert();
+
+  Vector sigma(dim); // eigenValues for M1 metric
+  Vector mu(dim); // eigenValues for M2 metric
+  Vector delta(dim); // eigenValues for (M1 intersection M2) metric
+  Vector ei;
+  Vector M1ei, M2ei;
+
+  for (int i = 0; i < dim; i++) {
+    double *e = R.GetColumn(i);
+    ei.SetData(e);
+    Mt.Mult(ei, M1ei);
+    sigma(i) = ei*M1ei;
+    Mt_t.Mult(ei, M2ei);
+    mu(i) = ei*M2ei;
+    delta(i) = std::max(sigma(i), mu(i));
+  }
+
+  DenseMatrix M_inter(dim);
+  /*
+  DenseMatrix R_inv_tr = R_inv;
+  R_inv_tr.Transpose(R_inv_tr);
+  MultADAt(R_inv_tr, delta, M_inter);
+  */
+  MultADAt(R_inv, delta, M_inter);
+
+  Mt_t = M_inter;
+
 }
 
 void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3 &xi,
