@@ -47,6 +47,7 @@
 #include <memory>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 #ifdef HAVE_SIMMETRIX
 #include <SimUtil.h>
@@ -162,11 +163,13 @@ void computeSizefield1(const ParFiniteElementSpace &H1FESpace,
     apf::Field* sizes,
     apf::Field* frames);
 
+// Hessian eigen value visualization
 void computeSizefield2(const ParFiniteElementSpace &H1FESpace,
     const ParGridFunction &grad_v,
     ParMesh *pmesh,
     const char *name, int count, int res);
 
+// metric intersection through eigen decomposition
 void computeSizefield3(const ParFiniteElementSpace &H1FESpace,
     const ParGridFunction &grad_v,
     ParMesh *pmesh,
@@ -208,7 +211,8 @@ int main(int argc, char *argv[])
   const char *simx_model_file = "/users/mohara/Desktop/cubeC/cubeC_nat.smd";
 
   int geom_order = 2;
-  int num_adapt = 10000;
+  int num_adapt = 400;
+  int counting = 1;
 
   /* //writing to file: shock front tracking 
   ofstream fileVel;
@@ -776,7 +780,7 @@ int main(int argc, char *argv[])
     ParGridFunction grad_v(&H1FESpace);
     grad_v.ProjectCoefficient(*grad_v_coeff);
 
-    double r_avg = getShockRadius(pmesh, v_mag, x_gf);
+    //double r_avg = getShockRadius(pmesh, v_mag, x_gf);
 
       /*
       int tstep = t/0.05;
@@ -941,6 +945,20 @@ int main(int argc, char *argv[])
       apf::Field* Coords = pumi_mesh->getCoordinateField();
       apf::FieldShape *fsTest = apf::getShape(Coords);
       std::string name = fsTest->getName();
+
+      std::vector<apf::Vector3> xyz;
+      std::vector<apf::Vector3> fv;
+      std::vector<int> clas;
+      apf::Vector3 vv = apf::Vector3(0.,0.,0.);
+
+      getXYXandFieldValuesAtXi(pumi_mesh, Coords, vv, xyz, fv, clas);
+
+      /*
+      for (int i = 0; i< xyz.size(); i++) {
+	std::cout<< xyz[i]-fv[i] << std::endl;
+      }
+      */
+
       std::cout<<" name of coord field "<< name <<std::endl;
 
       safe_mkdir("size_field_after");
@@ -1519,7 +1537,7 @@ void computeSizefield(const ParFiniteElementSpace &H1FESpace,
       }
 
       MultADAt(R, ev_m_log, Mt);    // construct log(Metric) matrix for each element
-      Mt.Transpose();
+      //Mt.Transpose();
 
       for (int k = 0; k < Mt.Width(); k++) {
 	for (int kk = 0; kk < Mt.Height(); kk++) {
@@ -1949,7 +1967,7 @@ void getXYXandFieldValuesAtXi(apf::Mesh2 *pumi_mesh, apf::Field* f, apf::Vector3
   apf::MeshEntity* et;
   apf::MeshIterator* itet = pumi_mesh->begin(1);
 
-  xi[0] = 2.*xi[0] - 1.;
+  //xi[0] = 2.*xi[0] - 1.;
 
   while ((et = pumi_mesh->iterate(itet))) {
     apf::Vector3 xv;
